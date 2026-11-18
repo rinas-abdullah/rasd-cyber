@@ -52,7 +52,28 @@ function getSafeCorsOrigin(originConfig) {
   return originConfig;
 }
 
+// Content hash of the shipped CSS/JS. Every `?v=...` cache-buster in the HTML
+// is rewritten to it, so a deploy that changes a stylesheet or script is seen
+// immediately despite the 1h asset cache — no hand-bumping version strings.
+const ASSET_VERSION = (() => {
+  const fs = require("fs");
+  const hash = crypto.createHash("sha1");
+  const walk = (dir) => {
+    let entries = [];
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const e of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) walk(full);
+      else { hash.update(e.name); hash.update(fs.readFileSync(full)); }
+    }
+  };
+  walk(path.join(rootPath, "css"));
+  walk(path.join(rootPath, "js"));
+  return hash.digest("hex").slice(0, 10);
+})();
+
 function injectNonce(html, nonce) {
+  html = html.replace(/(\.(?:css|js))\?v=[A-Za-z0-9._-]+/g, `$1?v=${ASSET_VERSION}`);
   // Add the per-request CSP nonce to every <script> so the pages' inline
   // bootstrap scripts run under a strict policy (no 'unsafe-inline'). Safe
   // because these HTML files never contain the literal "<script" inside a
@@ -198,6 +219,19 @@ app.get(ROUTES.PAGES.HOME, async (req, res, next) => {
     next(err);
   }
 });
+
+// Brand mark as the site icon (browsers request /favicon.ico on every page).
+const FAVICON_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+  '<rect width="64" height="64" rx="14" fill="#071d1c"/>' +
+  '<circle cx="32" cy="32" r="18" fill="none" stroke="#f3a05e" stroke-width="5"/>' +
+  '<circle cx="32" cy="32" r="6" fill="#f3a05e"/></svg>';
+app.get(["/favicon.ico", "/favicon.svg"], (req, res) => {
+  res.set("Cache-Control", "public, max-age=86400").type("image/svg+xml").send(FAVICON_SVG);
+});
+
+// Settings live on the profile page.
+app.get(ROUTES.PAGES.SETTINGS, (req, res) => res.redirect(302, "/profile"));
 
 // Auth page -> public
 app.get(["/login", "/auth", "/auth.html"], (req, res, next) => {

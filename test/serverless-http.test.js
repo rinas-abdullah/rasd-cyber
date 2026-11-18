@@ -53,6 +53,23 @@ test('login accepts the auth page identifier and legacy email payloads', async (
   assert.ok(JSON.parse(byEmail.body).data.token);
 });
 
+test('sign-up form payload (confirmPassword, skillLevel, interests) is accepted', async () => {
+  const signup = (body) => handler({
+    httpMethod: 'POST', path: '/api/auth/signup',
+    headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+    requestContext: { identity: { sourceIp: '127.0.0.1' } },
+  }, {});
+  const form = {
+    email: 'form-signup@example.com', username: 'form_signup', password: 'Form@Signup12345',
+    confirmPassword: 'Form@Signup12345', skillLevel: '', interests: ['phishing'],
+  };
+  const ok = await signup(form);
+  assert.equal(ok.statusCode, 201, ok.body);
+  const mismatch = await signup({ ...form, email: 'form-signup2@example.com', username: 'form_signup2', confirmPassword: 'Different@12345' });
+  assert.equal(mismatch.statusCode, 400);
+  assert.match(mismatch.body, /Passwords do not match/);
+});
+
 test('serverless Express rejects malformed JSON', async () => {
   const response = await post('{broken');
   assert.equal(response.statusCode, 400);

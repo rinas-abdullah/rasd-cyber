@@ -284,7 +284,9 @@ function recordCrisisProgress(phase, priorWorld) {
     );
   }
 
-  if (world.outcome === "breach") {
+  // Outcome events fire once, on the decision that produced the outcome.
+  const outcomeChanged = world.outcome !== priorWorld.outcome;
+  if (world.outcome === "breach" && outcomeChanged) {
     addCrisisEvent(
       phase,
       "simulated-data-exposure",
@@ -292,7 +294,7 @@ function recordCrisisProgress(phase, priorWorld) {
       "حدث انكشاف افتراضي لسجلات المرضى؛ لا توجد بيانات مرضى حقيقية.",
       "danger"
     );
-  } else if (world.outcome === "contained") {
+  } else if (world.outcome === "contained" && outcomeChanged) {
     addCrisisEvent(
       phase,
       "threat-contained",
@@ -300,6 +302,8 @@ function recordCrisisProgress(phase, priorWorld) {
       "تم احتواء التهديد الافتراضي؛ تحقّق من استمرارية أنظمة الرعاية الحيوية.",
       "success"
     );
+  } else if (world.outcome) {
+    // Outcome already announced; nothing new to report.
   } else if (world.adversary.stage === "lateral_movement" && priorWorld.adversary.stage !== "lateral_movement") {
     addCrisisEvent(
       phase,
@@ -402,7 +406,9 @@ async function submitDecision(sessionId, userId, optionId, elapsedMs, institutio
   // escalated), on a breach, or when the step budget is exhausted. Containment
   // alone does NOT end it — the learner can still escalate/notify/preserve.
   let phaseEnded = false;
-  const wrappedUp = phase.world.adversary.contained && phase.world.escalated;
+  // In crisis mode the clock (and the learner's "end phase") closes the
+  // incident, so stakeholder notification and recovery steps still count.
+  const wrappedUp = !session.crisisMode && phase.world.adversary.contained && phase.world.escalated;
   if (phase.world.outcome === "breach" || wrappedUp || phase.world.step >= session.caps.maxStepsPerPhase) {
     phaseEnded = true;
     await _endPhaseInternal(session);
@@ -448,13 +454,16 @@ async function expireCrisisIfNeeded(session) {
   }
   const phase = session.training;
   if (!phase || phase.concluded) return false;
-  phase.world.outcome = "timeout";
+  // A threat already contained (or breached) keeps that outcome; the clock
+  // only closes the review window.
+  const alreadyResolved = Boolean(phase.world.outcome);
+  if (!alreadyResolved) phase.world.outcome = "timeout";
   addCrisisEvent(
     phase,
     "time-expired",
-    "The simulated response window expired.",
-    "انتهت مهلة الاستجابة الافتراضية.",
-    "danger"
+    alreadyResolved ? "The simulated response window closed." : "The simulated response window expired.",
+    alreadyResolved ? "أُغلقت نافذة الاستجابة الافتراضية." : "انتهت مهلة الاستجابة الافتراضية.",
+    alreadyResolved ? "warning" : "danger"
   );
   await _endPhaseInternal(session);
   return true;

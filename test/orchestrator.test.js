@@ -66,6 +66,46 @@ test("crisis deadline is enforced by the server and concludes the simulation", a
   assert.ok(expired.crisis.events.some((event) => event.key === "time-expired"));
 });
 
+test("crisis: containment is announced once and the learner can still notify before ending", async () => {
+  const uid = 23;
+  const s = await orch.createCrisisSession({ userId: uid });
+  await orch.submitDecision(s.sessionId, uid, "d_collect_logs", 2000);
+  await orch.submitDecision(s.sessionId, uid, "d_suspend_account", 2000);
+  const afterEscalate = await orch.submitDecision(s.sessionId, uid, "d_escalate", 2000);
+  assert.equal(afterEscalate.phaseEnded, false, "crisis must not auto-end before stakeholder notification");
+  const afterNotify = await orch.submitDecision(s.sessionId, uid, "d_notify_business", 2000);
+  assert.equal(afterNotify.session.state, "SIMULATION");
+  const contained = afterNotify.session.crisis.events.filter((event) => event.key === "threat-contained");
+  assert.equal(contained.length, 1, "containment event must not repeat on later decisions");
+
+  const ended = await orch.endPhase(s.sessionId, uid);
+  assert.equal(ended.state, "FEEDBACK");
+  assert.equal(ended.crisis.outcome, "contained");
+  assert.ok(ended.training.evaluation.dimensions.recoveryReadiness > 18);
+});
+
+test("crisis: deadline after containment keeps the contained outcome", async () => {
+  const uid = 24;
+  const s = await orch.createCrisisSession({ userId: uid });
+  await orch.submitDecision(s.sessionId, uid, "d_collect_logs", 2000);
+  await orch.submitDecision(s.sessionId, uid, "d_suspend_account", 2000);
+  const raw = await orch._getRaw(s.sessionId, uid);
+  raw.crisisDeadlineAt = Date.now() - 1;
+  await store.save(raw);
+  const expired = await orch.getSession(s.sessionId, uid);
+  assert.equal(expired.state, "FEEDBACK");
+  assert.equal(expired.crisis.outcome, "contained");
+});
+
+test("after-action review is bilingual for deterministic narration", async () => {
+  const uid = 25;
+  const s = await orch.createSession({ userId: uid, assessmentLevel: 4 });
+  await playPhase(s.sessionId, uid, goodTrainingSeq());
+  const aar = await orch.getAfterAction(s.sessionId, uid);
+  assert.ok(aar.narrative.textAr && /النتيجة/.test(aar.narrative.textAr));
+  for (const entry of aar.timeline) assert.ok(entry.label && entry.label.ar && entry.label.en, `timeline entry ${entry.note || entry.ref} has a label`);
+});
+
 test("behavioral fingerprint reports insufficient data then scores simulated decisions", async () => {
   const uid = 22;
   const empty = await orch.getBehavioralFingerprint(uid);

@@ -14,6 +14,10 @@ class AdminDashboard {
     }
 
     init() {
+        // Non-admins are redirected by the page; don't fire institution
+        // requests that can only return 403 and an error popup.
+        const auth = window.authService;
+        if (auth && typeof auth.isAdmin === "function" && !auth.isAdmin()) return;
         this.bindEvents();
         this.loadAnalytics();
     }

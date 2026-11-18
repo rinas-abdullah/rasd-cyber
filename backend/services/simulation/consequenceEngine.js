@@ -52,7 +52,7 @@ function explain(kind, effective, world) {
       ? { ar: "حُجب الاتصال المشبوه فقُطع مسار التسريب نحو خادم التحكم.", en: "Suspicious traffic was blocked, cutting the exfiltration path to the C2 host." }
       : { ar: "حُجب اتصال اعتيادي؛ لا أثر دفاعي حقيقي.", en: "An ordinary connection was blocked; no real defensive effect." },
     escalate: { ar: "صُعّد الحادث إلى المستوى المناسب في الوقت الملائم.", en: "The incident was escalated to the right level at the right time." },
-    notify_business: { ar: "أُبلغ أصحاب العمل بالتأثير فتحسّنت جاهزية التعافي.", en: "Business stakeholders were notified, improving recovery readiness." },
+    notify_business: { ar: "أُبلغ أصحاب العلاقة بالتأثير فتحسّنت جاهزية التعافي.", en: "Business stakeholders were notified, improving recovery readiness." },
     monitor: { ar: "استمرت المراقبة دون تدخل؛ تقدّم الخصم خطوة في هذه الأثناء.", en: "Monitoring continued without acting; the adversary advanced a step meanwhile." },
     ignore: { ar: "جُوهل التنبيه؛ قرار خطِر منح الخصم وقتًا إضافيًا.", en: "The alert was dismissed — a dangerous choice that bought the adversary time." },
   };

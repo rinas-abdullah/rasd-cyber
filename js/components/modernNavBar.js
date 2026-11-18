@@ -24,11 +24,20 @@ class ModernNavBar {
     return window.i18n?.t(`navbar.${key}`) || key;
   }
 
+  // Primary links only; secondary pages (analyze, profile, insights,
+  // analytics) live in the user menu so the bar fits laptop widths.
+  navLink(href, page, labelKey, show = true, extraClass = "") {
+    if (!show) return "";
+    const cls = [this.currentPage === page ? "active-link" : "", extraClass].filter(Boolean).join(" ");
+    return `<a href="${href}" class="${cls}">${this.t(labelKey)}</a>`;
+  }
+
   detectPage() {
     const path = window.location.pathname.toLowerCase();
 
     if (path === "/" || path.includes("index")) return "home";
     if (path.includes("/learn")) return "learn";
+    if (path.includes("/ai-command") || path === "/ai" || path === "/command") return "command";
     if (path.includes("/dashboard")) return "dashboard";
     if (path.includes("/training") || path.includes("/practice")) return "training";
     if (path.includes("/terminal")) return "terminal";
@@ -73,95 +82,15 @@ class ModernNavBar {
         </a>
 
         <div class="nav-links">
-          <a href="/" class="${this.currentPage === "home" ? "active-link" : ""}">
-            ${this.t("home")}
-          </a>
-
-          <a href="/learn" class="${this.currentPage === "learn" ? "active-link" : ""}">
-            ${this.t("learn")}
-          </a>
-
-          ${
-            this.isLoggedIn
-              ? `
-                <a href="/dashboard" class="${this.currentPage === "dashboard" ? "active-link" : ""}">
-                  ${this.t("dashboard")}
-                </a>
-              `
-              : ""
-          }
-
-          <a href="/training" class="${this.currentPage === "training" ? "active-link" : ""}">
-            ${this.t("training")}
-          </a>
-
-          <a href="/terminal" class="${this.currentPage === "terminal" ? "active-link" : ""}">
-            ${this.t("terminal")}
-          </a>
-
-          ${
-            this.isLoggedIn
-              ? `
-                <a href="/analyze-scenario" class="${this.currentPage === "analyze" ? "active-link" : ""}">
-                  ${this.t("analyze")}
-                </a>
-              `
-              : ""
-          }
-
-          ${
-            this.isLoggedIn
-              ? `
-                <a href="/learner-profile" class="${this.currentPage === "profile" ? "active-link" : ""}">
-                  ${this.t("profile")}
-                </a>
-              `
-              : ""
-          }
-
-          ${
-            this.isLoggedIn
-              ? `
-                <a href="/ai-insights" class="${this.currentPage === "insights" ? "active-link" : ""}">
-                  ${this.t("insights")}
-                </a>
-              `
-              : ""
-          }
-
-          ${
-            this.isLoggedIn
-              ? `
-                <a href="/analytics" class="${this.currentPage === "analytics" ? "active-link" : ""}">
-                  ${this.t("analytics")}
-                </a>
-              `
-              : ""
-          }
-
-          ${
-            this.isLoggedIn
-              ? `
-                <a href="/readiness" class="${this.currentPage === "readiness" ? "active-link" : ""}">
-                  ${this.t("readiness")}
-                </a>
-              `
-              : ""
-          }
-
-          <a href="/leaderboard" class="${this.currentPage === "leaderboard" ? "active-link" : ""}">
-            ${this.t("leaderboard")}
-          </a>
-
-          ${
-            this.isLoggedIn && this.isAdmin
-              ? `
-                <a href="/admin" class="${this.currentPage === "admin" ? "active-link" : ""}">
-                  ${this.t("admin")}
-                </a>
-              `
-              : ""
-          }
+          ${this.navLink("/", "home", "home", !this.isLoggedIn)}
+          ${this.navLink("/dashboard", "dashboard", "dashboard", this.isLoggedIn)}
+          ${this.navLink("/ai-command", "command", "command", true, "nav-link-key")}
+          ${this.navLink("/learn", "learn", "learn", true)}
+          ${this.navLink("/training", "training", "training", true)}
+          ${this.navLink("/terminal", "terminal", "terminal", true)}
+          ${this.navLink("/readiness", "readiness", "readiness", this.isLoggedIn)}
+          ${this.navLink("/leaderboard", "leaderboard", "leaderboard", true)}
+          ${this.navLink("/admin", "admin", "admin", this.isLoggedIn && this.isAdmin)}
         </div>
 
         <div class="nav-right">

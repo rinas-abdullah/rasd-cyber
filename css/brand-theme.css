@@ -104,3 +104,30 @@ html[data-rasd-page="app"] :is(.status-indicator, .metric-dot, .live-pip) {
 html[data-rasd-page="app"] .ac-adv.contained .ac-dot { background: var(--rasd-success); }
 html[data-rasd-page="app"] .ac-eff.yes { color: var(--rasd-success); }
 html[data-rasd-page="app"] ::selection { background: rgba(243, 160, 94, .28); color: var(--rasd-paper); }
+
+/* Auth page: hint under the password field, and when the hero stacks into a
+   single column, show the sign-in card first and centred instead of ~1300px
+   below the fold. */
+.form-hint { display: block; margin-top: 6px; color: var(--rasd-muted); font-size: 12px; line-height: 1.6; }
+.glow-card-auth { margin-inline: auto; width: 100%; }
+@media (max-width: 1100px) {
+  .hero-panel.align-stretch .hero-right { order: -1; }
+}
+
+/* Primary nav: highlight the Command Center (the core training loop). */
+.nav-links a.nav-link-key { color: var(--rasd-accent); }
+.nav-links a.nav-link-key::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-inline-end: 6px; border-radius: 50%; background: var(--rasd-accent); vertical-align: middle; }
+.nav-links a { white-space: nowrap; }
+@media (max-width: 480px) {
+  .user-btn .user-name, .user-btn .user-stats { display: none; }
+}
+/* Grid children may shrink below their content width (long terminal lines). */
+.terminal-layout > *, .profile-section, .analytics-section, .insight-card { min-width: 0; }
+@media (max-width: 600px) {
+  .charts-grid, .breakdown-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .chart-card, .chart-card canvas { min-width: 0; max-width: 100%; }
+  .terminal-info-card { min-width: 0; flex: 1 1 100%; box-sizing: border-box; }
+  .lab-select-btn { max-width: 100%; white-space: normal; }
+  .terminal-sidebar > .terminal-info-card { width: 100%; max-width: 100%; }
+}
+.flag-submit-container .flag-input { min-width: 0; }

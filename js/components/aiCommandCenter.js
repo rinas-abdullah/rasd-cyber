@@ -61,6 +61,30 @@
     failed: { ar: "غير مكتمل", en: "Not passed" },
     insufficient: { ar: "أدلة غير كافية", en: "Insufficient evidence" },
   };
+  // Evaluation rubric dimensions (keys come from the decision evaluator).
+  var DIMENSIONS = {
+    incidentContainment: { ar: "احتواء الحادث", en: "Incident containment" },
+    serviceContinuity: { ar: "استمرارية الخدمة", en: "Service continuity" },
+    evidencePreservation: { ar: "حفظ الأدلة", en: "Evidence preservation" },
+    decisionTiming: { ar: "توقيت القرار", en: "Decision timing" },
+    riskReduction: { ar: "خفض المخاطر", en: "Risk reduction" },
+    escalationQuality: { ar: "جودة التصعيد", en: "Escalation quality" },
+    recoveryReadiness: { ar: "جاهزية التعافي", en: "Recovery readiness" },
+    orderCorrectness: { ar: "صحة ترتيب الاستجابة", en: "Response order" },
+  };
+  var SECTORS = {
+    healthcare: { ar: "الرعاية الصحية", en: "healthcare" },
+    finance: { ar: "القطاع المالي", en: "finance" },
+    education: { ar: "التعليم", en: "education" },
+  };
+  var AI_MODES = {
+    "dev-deterministic": { ar: "وضع حتمي (بدون ذكاء اصطناعي حي)", en: "deterministic mode (no live AI)" },
+    live: { ar: "ذكاء اصطناعي حي", en: "live AI" },
+  };
+  var READINESS_STATUS = {
+    READY_EVIDENCE: { ar: "أدلة جاهزية كافية", en: "Readiness evidence" },
+    INSUFFICIENT_EVIDENCE: { ar: "أدلة غير كافية", en: "Insufficient evidence" },
+  };
   function t(k) { return (T[k] && T[k][state.lang]) || k; }
   function L(obj) { return obj ? (obj[state.lang] || obj.en || "") : ""; }
 
@@ -303,7 +327,7 @@
     html += '<section class="ac-card"><h3>' + t("scenario") + ' <span class="ac-tag sim">SIM</span></h3>';
     html += '<p class="ac-obj">' + escapeHtml(L(cur.objective)) + "</p>";
     html += '<div class="ac-meta">' + escapeHtml(L(cur.world.organization) ? L({ ar: cur.world.organization.name, en: cur.world.organization.name }) : "") +
-      ' · ' + escapeHtml(cur.sector) + ' · ' + (state.lang === "ar" ? "صعوبة" : "difficulty") + " " + cur.difficulty + "</div>";
+      ' · ' + escapeHtml(SECTORS[cur.sector] ? L(SECTORS[cur.sector]) : cur.sector) + ' · ' + (state.lang === "ar" ? "صعوبة" : "difficulty") + " " + cur.difficulty + "</div>";
     html += "</section>";
 
     // Adversary
@@ -344,12 +368,14 @@
       b.addEventListener("click", function () { submitDecision(b.getAttribute("data-opt")); });
     });
     el("ac-hint").disabled = s.state !== "SIMULATION";
-    el("ac-endphase").disabled = !active || cur.decisionsTaken.length === 0 || s.crisisMode;
+    el("ac-endphase").disabled = !active || cur.decisionsTaken.length === 0;
 
     // Feed
     var feed = "";
+    var labelByKind = {};
+    cur.decisions.forEach(function (d) { labelByKind[d.kind] = L(d.label); });
     (cur.decisionsTaken || []).forEach(function (d) {
-      feed += '<div class="ac-feed-row"><span class="ac-step">#' + d.step + '</span>' + escapeHtml(d.kind) +
+      feed += '<div class="ac-feed-row"><span class="ac-step">#' + d.step + '</span>' + escapeHtml(labelByKind[d.kind] || d.kind) +
         ' <span class="ac-eff ' + (d.effective ? "yes" : "no") + '">' + (d.effective ? "✓" : "✕") + "</span></div>";
     });
     el("ac-feed").innerHTML = feed || '<div class="muted">—</div>';
@@ -426,7 +452,7 @@
     var html = '<h3>' + t("evaluation") + ' <span class="ac-tag meas">MEASURED</span></h3>';
     if (ev.insufficientData) { html += '<p class="muted">' + t("insufficient") + "</p>"; el("ac-eval").innerHTML = html; return; }
     html += '<div class="ac-score ' + (ev.passed ? "pass" : "fail") + '">' + ev.total + '<small>/100 · ' + (ev.passed ? t("passed") : t("failed")) + "</small></div>";
-    Object.keys(ev.dimensions).forEach(function (k) { html += bar(k, ev.dimensions[k]); });
+    Object.keys(ev.dimensions).forEach(function (k) { html += bar(DIMENSIONS[k] ? L(DIMENSIONS[k]) : k, ev.dimensions[k]); });
     html += '<ul class="ac-rationale">';
     var rationale = state.lang === "en" && ev.rationaleEn ? ev.rationaleEn : ev.rationale;
     rationale.forEach(function (r) { html += "<li>" + escapeHtml(r) + "</li>"; });
@@ -447,8 +473,9 @@
       html += '<p class="muted">' + (state.lang === "ar" ? "أدلة لم تُجمع: " : "Evidence not collected: ") +
         aar.ignoredEvidence.map(function (x) { return escapeHtml(L(x.label)); }).join(" · ") + "</p>";
     }
-    html += '<p class="ac-narr">' + escapeHtml(aar.narrative.text) +
-      ' <span class="ac-chip ' + (aar.narrative.aiMode === "live" ? "live" : "dev") + '">' + aar.narrative.aiMode + "</span></p>";
+    var narrText = state.lang === "ar" && aar.narrative.textAr ? aar.narrative.textAr : aar.narrative.text;
+    html += '<p class="ac-narr">' + escapeHtml(narrText) +
+      ' <span class="ac-chip ' + (aar.narrative.aiMode === "live" ? "live" : "dev") + '">' + escapeHtml(AI_MODES[aar.narrative.aiMode] ? L(AI_MODES[aar.narrative.aiMode]) : aar.narrative.aiMode) + "</span></p>";
     html += '<p class="ac-rec">' + escapeHtml(L(aar.recommendation)) + "</p>";
     el("ac-aar").innerHTML = html;
   }
@@ -456,7 +483,8 @@
   function renderReadiness(rd) {
     var cls = rd.status === "READY_EVIDENCE" ? "pass" : rd.status === "INSUFFICIENT_EVIDENCE" ? "warn" : "dev";
     var html = '<h3>' + t("readiness") + ' <span class="ac-tag meas">MEASURED</span></h3>';
-    html += '<div class="ac-rd-status ' + cls + '">' + rd.status + "</div>";
+    html += '<div class="ac-rd-status ' + cls + '">' + escapeHtml(READINESS_STATUS[rd.status] ? L(READINESS_STATUS[rd.status]) : rd.status) +
+      ' <small class="ac-rd-code">' + escapeHtml(rd.status) + "</small></div>";
     html += '<div class="ac-rd-grid">';
     html += '<div><span>' + (state.lang === "ar" ? "أداء التدريب" : "Training perf") + "</span><b>" + (rd.trainingPerformance == null ? "—" : rd.trainingPerformance) + "</b></div>";
     html += '<div><span>' + (state.lang === "ar" ? "الاستقلالية" : "Autonomy") + "</span><b>" + (rd.autonomy == null ? "—" : rd.autonomy) + "</b></div>";

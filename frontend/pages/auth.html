@@ -159,7 +159,8 @@
 
               <div class="form-group">
                 <label class="form-label" for="signupPassword" data-i18n="auth.label_password">Password</label>
-                <input class="form-input" id="signupPassword" type="password" data-i18n-placeholder="auth.ph_password_create" placeholder="Create a password" />
+                <input class="form-input" id="signupPassword" type="password" data-i18n-placeholder="auth.ph_password_create" placeholder="Create a password" autocomplete="new-password" />
+                <small class="form-hint" data-i18n="auth.password_rules">At least 12 characters, with uppercase, lowercase, a number and a symbol.</small>
               </div>
 
               <div class="form-group">
@@ -298,6 +299,21 @@
       const m = document.getElementById("msg");
       m.textContent = text;
       m.className = "message show " + type;
+      m.setAttribute("role", type === "error" ? "alert" : "status");
+      m.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    // The API returns { message: "Validation failed", errors: ["field: reason"] }.
+    // Show the first concrete reason instead of the generic summary.
+    function apiErrorText(data, fallback) {
+      const first = Array.isArray(data?.errors) && data.errors.length ? String(data.errors[0]) : "";
+      const reason = first.includes(": ") ? first.slice(first.indexOf(": ") + 2) : first;
+      if (/Password must/i.test(reason)) return tAuth("password_rules");
+      return reason || data?.message || fallback;
+    }
+
+    function passwordMeetsRules(pw) {
+      return pw.length >= 12 && /[A-Z]/.test(pw) && /[a-z]/.test(pw) && /[0-9]/.test(pw) && /[^A-Za-z0-9]/.test(pw);
     }
 
     function clearMessage() {
@@ -353,7 +369,7 @@
             authService.redirectAfterLogin("/dashboard");
           }, 600);
         } else {
-          showMessage(data.message || tAuth("err_login_failed"));
+          showMessage(apiErrorText(data, tAuth("err_login_failed")));
         }
       } catch (error) {
         console.error("LOGIN ERROR:", error);
@@ -386,6 +402,11 @@
 
       if (password !== confirmPassword) {
         showMessage(tAuth("err_password_mismatch"));
+        return;
+      }
+
+      if (!passwordMeetsRules(password)) {
+        showMessage(tAuth("password_rules"));
         return;
       }
 
@@ -422,7 +443,7 @@
             authService.redirectAfterLogin("/dashboard");
           }, 600);
         } else {
-          showMessage(data.message || tAuth("err_signup_failed"));
+          showMessage(apiErrorText(data, tAuth("err_signup_failed")));
         }
       } catch (error) {
         console.error("SIGNUP ERROR:", error);

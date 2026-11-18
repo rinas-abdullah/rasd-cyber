@@ -89,7 +89,7 @@
     <div class="profile-container">
       <div class="profile-section" data-anim="3">
         <h3>Skill Assessment</h3>
-        <div class="skills-layout" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px; align-items: center;">
+        <div class="skills-layout" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 32px; align-items: center;">
           <div class="chart-container" style="position: relative; height: 300px; width: 100%;">
             <canvas id="skillsRadarChart"></canvas>
           </div>
@@ -101,7 +101,7 @@
 
       <div class="profile-section" data-anim="4">
         <h3>Learning Progress</h3>
-        <div class="progress-layout" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px; align-items: center;">
+        <div class="progress-layout" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 32px; align-items: center;">
           <div class="chart-container" style="position: relative; height: 300px; width: 100%;">
             <canvas id="progressLineChart"></canvas>
           </div>
@@ -579,7 +579,7 @@
 
     .skills-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
       gap: 20px;
     }
 
@@ -626,7 +626,7 @@
 
     .progress-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(350px, 100%), 1fr));
       gap: 20px;
     }
 
@@ -685,7 +685,7 @@
 
     .behavior-metrics {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
       gap: 16px;
       margin-bottom: 24px;
     }

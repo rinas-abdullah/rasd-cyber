@@ -124,8 +124,17 @@ const registerSchema = z
         "Skill level must be beginner, intermediate, or advanced"
       ),
     interests: z.array(z.string().trim().max(40)).optional(),
+    // The sign-up form sends the confirmation field; the legacy client sends
+    // institution_id: null. Accept both, verify the match, then drop them.
+    confirmPassword: z.string().max(VALIDATION_RULES.PASSWORD.MAX_LENGTH).optional(),
+    institution_id: z.null().optional(),
   })
-  .strict();
+  .strict()
+  .refine((value) => value.confirmPassword === undefined || value.confirmPassword === value.password, {
+    path: ["confirmPassword"],
+    message: "Passwords do not match",
+  })
+  .transform(({ confirmPassword, institution_id, ...rest }) => rest);
 
 const profileUpdateSchema = z
   .object({

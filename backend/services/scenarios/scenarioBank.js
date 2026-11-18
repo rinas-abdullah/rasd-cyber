@@ -23,7 +23,7 @@ const DECISION_LIBRARY = {
   reset_credentials: { ar: "إعادة تعيين بيانات الاعتماد", en: "Reset credentials" },
   escalate: { ar: "تصعيد الحادث", en: "Escalate the incident" },
   block_network: { ar: "حجب الاتصال الشبكي المشبوه", en: "Block suspicious network traffic" },
-  notify_business: { ar: "إبلاغ أصحاب العمل بالتأثير", en: "Notify business stakeholders" },
+  notify_business: { ar: "إبلاغ أصحاب العلاقة بالتأثير", en: "Notify business stakeholders" },
   monitor: { ar: "مراقبة النشاط دون تدخل", en: "Monitor activity without acting" },
   ignore: { ar: "تجاهل التنبيه مؤقتًا", en: "Dismiss the alert for now" },
 };
