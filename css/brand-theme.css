@@ -1,0 +1,106 @@
+/* One palette shared with the landing page across every RASD workspace. */
+.google-access { margin-block: 20px; }
+.google-signin { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; min-height: 48px; padding: 12px 18px; border: 1px solid var(--rasd-line-strong); border-radius: 10px; color: var(--rasd-paper); background: var(--rasd-surface); text-decoration: none; font: inherit; font-weight: 600; }
+.google-signin:hover { background: var(--rasd-card); border-color: var(--rasd-accent); }
+.google-signin[aria-disabled="true"] { opacity: .55; cursor: not-allowed; pointer-events: none; }
+.google-signin svg { flex: none; }
+.google-auth-message { color: var(--rasd-muted); font-size: 13px; line-height: 1.7; margin-block: 10px; }
+.google-auth-message:empty { display: none; }
+.auth-divider { display: flex; align-items: center; gap: 12px; margin-block: 20px; color: var(--rasd-faint); font-size: 12px; }
+.auth-divider::before,.auth-divider::after { content: ""; height: 1px; flex: 1; background: var(--rasd-line); }
+:root {
+  --rasd-ground: #071d1c;
+  --rasd-surface: #0b2a28;
+  --rasd-card: #10383a;
+  --rasd-paper: #ece8da;
+  --rasd-muted: #9db3af;
+  --rasd-faint: #6f8783;
+  --rasd-accent: #f3a05e;
+  --rasd-success: #7ed9a6;
+  --rasd-danger: #e06c5b;
+  --rasd-line: rgba(236, 232, 218, .10);
+  --rasd-line-strong: rgba(236, 232, 218, .18);
+}
+
+:root[data-rasd-page="app"] {
+  color-scheme: dark;
+  --bg-primary: var(--rasd-ground) !important;
+  --bg-secondary: var(--rasd-surface) !important;
+  --bg-tertiary: var(--rasd-card) !important;
+  --bg-base: var(--rasd-ground);
+  --bg-elevated: var(--rasd-surface);
+  --bg-panel: var(--rasd-surface);
+  --bg-card: var(--rasd-card);
+  --bg-card-2: var(--rasd-card);
+  --bg-input: var(--rasd-ground);
+  --text-primary: var(--rasd-paper) !important;
+  --text-secondary: var(--rasd-muted) !important;
+  --text-light: var(--rasd-muted) !important;
+  --text-muted: var(--rasd-faint) !important;
+  --text-faint: var(--rasd-faint);
+  --accent-primary: var(--rasd-accent) !important;
+  --accent-primary-2: var(--rasd-accent);
+  --accent-secondary: var(--rasd-accent) !important;
+  --accent-tertiary: var(--rasd-accent) !important;
+  --accent-blue: var(--rasd-accent);
+  --accent-cyan: var(--rasd-accent);
+  --accent-purple: var(--rasd-accent);
+  --accent-gold: var(--rasd-accent);
+  --accent-orange: var(--rasd-accent);
+  --accent-success: var(--rasd-success) !important;
+  --accent-danger: var(--rasd-danger) !important;
+  --accent-red: var(--rasd-danger);
+  --accent-warning: var(--rasd-accent) !important;
+  --status-success: var(--rasd-success) !important;
+  --status-error: var(--rasd-danger) !important;
+  --status-warning: var(--rasd-accent) !important;
+  --status-info: var(--rasd-accent) !important;
+  --border-color: var(--rasd-line) !important;
+  --border-light: var(--rasd-line-strong) !important;
+  --border-primary: rgba(243, 160, 94, .35) !important;
+  --border-dim: var(--rasd-line);
+  --border-mid: var(--rasd-line-strong);
+  --border-strong: rgba(243, 160, 94, .35);
+  /* Command Center aliases. Its --ink denotes text; landing --ink is ground. */
+  --bg: var(--rasd-ground) !important;
+  --panel: var(--rasd-surface) !important;
+  --panel-2: var(--rasd-ground) !important;
+  --line: var(--rasd-line-strong) !important;
+  --ink: var(--rasd-paper) !important;
+  --muted: var(--rasd-muted) !important;
+  --accent: var(--rasd-accent) !important;
+  --accent-2: var(--rasd-accent) !important;
+  --danger: var(--rasd-danger);
+  --warn: var(--rasd-accent);
+  --live: var(--rasd-success);
+  --dev: var(--rasd-muted);
+  --sim: var(--rasd-accent);
+  --meas: var(--rasd-success);
+}
+
+html[data-rasd-page="app"] body {
+  background: var(--rasd-ground) !important;
+  color: var(--rasd-paper);
+}
+html[data-rasd-page="app"] :is(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--rasd-accent);
+  outline-offset: 3px;
+}
+html[data-rasd-page="app"] :is(input, select, textarea) {
+  accent-color: var(--rasd-accent);
+}
+html[data-rasd-page="app"] :is(.btn-primary, .ac-btn.primary, .ac-btn.accent) {
+  background: var(--rasd-accent) !important;
+  border-color: var(--rasd-accent) !important;
+  color: #1b120a !important;
+}
+html[data-rasd-page="app"] :is(.btn-primary, .ac-btn.primary, .ac-btn.accent):hover:not(:disabled) {
+  background: #f7b37a !important;
+}
+html[data-rasd-page="app"] :is(.status-indicator, .metric-dot, .live-pip) {
+  background: var(--rasd-success);
+  box-shadow: 0 0 13px rgba(126, 217, 166, .35);
+}
+html[data-rasd-page="app"] .ac-adv.contained .ac-dot { background: var(--rasd-success); }
+html[data-rasd-page="app"] .ac-eff.yes { color: var(--rasd-success); }
+html[data-rasd-page="app"] ::selection { background: rgba(243, 160, 94, .28); color: var(--rasd-paper); }

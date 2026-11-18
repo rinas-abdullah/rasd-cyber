@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html data-rasd-page="app" lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    name="description"
+    content="Rasd Cyber Terminal Lab — Live command simulation environment."
+  />
+  <title>Rasd Cyber | رصد سايبر – Elite Terminal Labs</title>
+
+  <script src="/js/theme.js?v=rasd-unified-1"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css?v=rasd-unified-1" />
+
+  <script src="/js/components/auth.js?v=rasd-unified-1"></script>
+  <script src="/js/components/pageGuard.js?v=rasd-unified-1"></script>
+  <script src="/js/translations.js?v=rasd-unified-1"></script>
+  <script src="/js/i18n.js?v=rasd-unified-1"></script>
+  <script src="/js/components/modernNavBar.js?v=rasd-unified-1"></script>
+<link rel="stylesheet" href="/css/brand-theme.css?v=rasd-unified-1" />
+</head>
+<body>
+  <nav id="navbar-container" class="navbar"></nav>
+
+  <main class="terminal-shell">
+    <div class="training-header" data-anim="1">
+      <div class="kicker" data-i18n="terminal.kicker">Guided AI Labs</div>
+      <h1 data-i18n="terminal.title">Cyber Terminal Sandbox</h1>
+      <p data-i18n="terminal.desc">
+        Hone your defensive and offensive skills in our premium state-machine sandbox. Complete labs to unlock achievements and earn real XP.
+      </p>
+    </div>
+
+    <!-- Notification Overlay for Flag Celebrations -->
+    <div id="celebrationOverlay" class="celebration-overlay">
+      <div class="celebration-card">
+        <div class="celebration-icon">🏆</div>
+        <h2 data-i18n="terminal.labCompleted">LAB COMPLETED!</h2>
+        <p id="celebrationMessage"></p>
+        <button class="btn btn-primary" id="celebrationAckBtn" data-i18n="terminal.acknowledge">Acknowledge</button>
+      </div>
+    </div>
+
+    <!-- Forensics investigation overlay (adversary lab, after containment) -->
+    <div id="forensicsOverlay" class="aa-overlay">
+      <div class="aa-card">
+        <h2 data-i18n="terminal.forensicsTitle">Forensic Investigation</h2>
+        <p class="aa-sub" data-i18n="terminal.forensicsIntro">The adversary is contained. Reconstruct the incident: tick every technique that actually happened, number them in the order they occurred, and mark the entry point. Two items are decoys.</p>
+        <div id="forensicsList" class="forensics-list"></div>
+        <div class="aa-actions">
+          <button class="btn btn-primary" id="forensicsSubmitBtn" data-i18n="terminal.forensicsSubmit">Submit investigation</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- After-action report overlay -->
+    <div id="afterActionOverlay" class="aa-overlay">
+      <div class="aa-card aa-card-wide">
+        <h2 data-i18n="terminal.afterActionTitle">After-Action Report</h2>
+        <div id="afterActionBody" class="aa-body"></div>
+        <div class="aa-actions">
+          <a class="btn btn-secondary" href="/readiness" data-i18n="terminal.viewReadiness">View readiness</a>
+          <button class="btn btn-primary" id="afterActionCloseBtn" data-i18n="terminal.close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="terminal-layout" data-anim="2">
+      <!-- Terminal Console Window -->
+      <div class="terminal-window">
+        <div class="terminal-chrome">
+          <div class="traffic-lights">
+            <span class="tl tl-red" id="trafficReset"></span>
+            <span class="tl tl-yellow"></span>
+            <span class="tl tl-green"></span>
+          </div>
+
+          <div class="terminal-title mono" id="terminalTitle">
+            agent@rasd:~/recon_lab — bash — 80×24
+          </div>
+
+          <div class="terminal-status">
+            <span class="status-dot green"></span>
+            <span data-i18n="terminal.status">Sandbox Active</span>
+            <span id="pressureTimerDisplay" class="pressure-timer" style="display: none;"></span>
+          </div>
+        </div>
+
+        <div id="terminalOutput" class="terminal-output mono"></div>
+
+        <div class="terminal-input-row">
+          <span class="terminal-prompt mono" id="terminalPromptPrefix">agent@rasd:~$ &nbsp;</span>
+          <input
+            type="text"
+            id="terminalInput"
+            class="mono"
+            placeholder="enter command or submit flag (e.g. submit FLAG{...})"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            aria-label="Terminal input"
+          />
+        </div>
+      </div>
+
+      <!-- Lab Control & Sidebar -->
+      <div class="terminal-sidebar">
+        <!-- Lab Selector Panel -->
+        <div class="terminal-info-card" data-anim="3">
+          <h4 data-i18n="terminal.labSelector">Lab Selector</h4>
+          <div class="lab-selector-list" id="labSelectorList"></div>
+        </div>
+
+        <!-- Pressure Mode Toggle -->
+        <div class="terminal-info-card pressure-toggle-card" data-anim="3.5">
+          <div class="pressure-toggle-row">
+            <div>
+              <h4 data-i18n="terminal.pressureTitle">⚡ Pressure Mode</h4>
+              <p class="pressure-toggle-desc" data-i18n="terminal.pressureDesc">Adds a countdown timer and live incident noise to any lab. Finish before time's up for bonus XP.</p>
+            </div>
+            <label class="pressure-switch">
+              <input type="checkbox" id="pressureModeToggle" />
+              <span class="pressure-switch-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Dynamic Lab Objective -->
+        <div class="terminal-info-card" data-anim="4">
+          <h4 data-i18n="terminal.activeObjective">Active Objective</h4>
+          <div id="labObjectiveText" class="lab-objective-text"></div>
+          <div class="lab-badge-row">
+            <span class="badge badge-gold" id="labXPReward"></span>
+            <span class="badge badge-completed" id="labCompletedStatus" style="display: none;" data-i18n="terminal.completed">Completed</span>
+          </div>
+        </div>
+
+        <!-- Submit Flag Direct Panel -->
+        <div class="terminal-info-card" data-anim="5" id="flagSubmitCard">
+          <h4 data-i18n="terminal.submitFlag">Submit Captured Flag</h4>
+          <div class="flag-submit-container">
+            <input type="text" id="directFlagInput" placeholder="FLAG{...}" class="flag-input mono" />
+            <button class="btn btn-primary flag-btn" id="flagSubmitBtn" data-i18n="terminal.submitBtn">Submit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // ============================================================
+    // Server-driven terminal labs.
+    //
+    // The browser holds NO flags, NO completion state and NO XP. It sends
+    // commands and flags to /api/labs/* and renders whatever the server
+    // returns. Completion, XP (once per lab), flag validation, adversary
+    // containment and Pressure Mode timing are all decided server-side.
+    // Command output is rendered with textContent (never innerHTML), so a
+    // typed command can never inject markup.
+    // ============================================================
+
+    const lang = () => (window.i18n?.getCurrentLanguage?.() || document.documentElement.lang || "en");
+    const T = (en, ar) => (lang() === "ar" ? ar : en);
+
+    let activeLabId = 1;
+    let attemptId = null;
+    let currentLab = null;
+    let labsById = {};
+    let completedLabs = [];
+    let adversaryContained = false;
+    let forensicsItems = [];
+
+    // Pressure Mode timer is purely cosmetic on the client — the server owns
+    // the real deadline and decides the bonus. Off by default.
+    let pressureModeEnabled = false;
+    let pressureDeadline = null;
+    let pressureRunActive = false;
+    let pressureTimerInterval = null;
+    let pressureDistractionInterval = null;
+    const PRESSURE_DISTRACTION_INTERVAL_MS = 25 * 1000;
+    const PRESSURE_DISTRACTIONS = [
+      ["[PAGER] Unrelated latency alert on a different host — not assigned to you, ignore.", "[نداء] تنبيه زمن استجابة على مضيف آخر — ليس ضمن مهامك، تجاهله."],
+      ["[CHAT] Manager: \"Any update? Leadership is asking.\"", "[محادثة] المدير: «هل من جديد؟ الإدارة تسأل.»"],
+      ["[TICKET] A new low-priority ticket was auto-filed. Does not block this incident.", "[تذكرة] فُتحت تذكرة منخفضة الأولوية تلقائيًا. لا تعيق هذه الحادثة."],
+      ["[MONITORING] Noisy health-check flapping on an adjacent service. Not your system.", "[مراقبة] فحص صحة متذبذب على خدمة مجاورة. ليس نظامك."],
+      ["[CHAT] Teammate: \"Need a hand on mine after you're done with yours?\"", "[محادثة] زميل: «تساعدني بعد ما تخلص؟»"],
+      ["[PAGER] Reminder: status update due to the incident channel in 5 minutes.", "[نداء] تذكير: تحديث الحالة إلى قناة الحادثة خلال 5 دقائق."],
+    ];
+
+    const KIND_CLASS = {
+      echo: "terminal-input-echo",
+      data: "terminal-data-line",
+      success: "terminal-success-line",
+      error: "terminal-error-line",
+      hint: "terminal-hint-line",
+      incoming: "terminal-error-line",
+      rationale: "terminal-rationale-line",
+      system: "terminal-instruction-text",
+    };
+
+    async function labApi(method, path, body) {
+      const headers = { "Content-Type": "application/json" };
+      const auth = window.authService?.getAuthHeader?.() || {};
+      Object.assign(headers, auth);
+      const res = await fetch(`/api${path}`, {
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        const err = new Error(data?.message || `HTTP ${res.status}`);
+        err.status = res.status;
+        throw err;
+      }
+      return data;
+    }
+
+    function appendLine(text, kind) {
+      const output = document.getElementById("terminalOutput");
+      const div = document.createElement("div");
+      div.className = KIND_CLASS[kind] || "terminal-data-line";
+      div.textContent = text; // never innerHTML — safe for typed commands
+      output.appendChild(div);
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function appendLines(lines) {
+      (lines || []).forEach((l) => appendLine(l.text, l.kind));
+    }
+
+    function clearTerminal() {
+      const output = document.getElementById("terminalOutput");
+      output.textContent = "";
+      const welcome = document.createElement("div");
+      welcome.className = "terminal-welcome-text";
+      welcome.textContent = "Rasd Cyber | رصد سايبر Terminal v3.0 — AI-Guided Interactive Sandbox";
+      const line = document.createElement("div");
+      line.className = "terminal-instruction-text";
+      line.textContent = currentLab
+        ? `${T("Lab", "المختبر")}: ${currentLab.name} — ${T("type 'help' for instructions.", "اكتب 'help' للتعليمات.")}`
+        : T("Select a lab to begin.", "اختر مختبرًا للبدء.");
+      const sep = document.createElement("div");
+      sep.className = "terminal-separator";
+      sep.textContent = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
+      output.append(welcome, line, sep);
+    }
+
+    // ---- lab list + sidebar --------------------------------------------------
+
+    async function loadLabs() {
+      const res = await labApi("GET", `/labs?lang=${lang()}`);
+      labsById = {};
+      (res.data.labs || []).forEach((l) => (labsById[l.id] = l));
+      completedLabs = res.data.completed || [];
+      renderSidebar();
+    }
+
+    function difficultyClass(diff) {
+      const d = String(diff).toLowerCase();
+      if (d.includes("begin")) return "beginner";
+      if (d.includes("advanced") || d.includes("adaptive")) return "advanced";
+      return "intermediate";
+    }
+
+    function renderSidebar() {
+      const list = document.getElementById("labSelectorList");
+      list.textContent = "";
+      Object.values(labsById).forEach((lab) => {
+        const btn = document.createElement("button");
+        btn.className = "lab-select-btn" + (lab.id === activeLabId ? " active" : "");
+        btn.onclick = () => switchLab(lab.id);
+
+        const num = document.createElement("span");
+        num.className = "lab-num";
+        const done = completedLabs.includes(lab.id);
+        num.textContent = done ? "✓" : String(lab.id).padStart(2, "0");
+        if (done) {
+          num.style.color = "var(--accent-primary)";
+          num.style.borderColor = "var(--accent-primary)";
+        }
+
+        const meta = document.createElement("div");
+        meta.className = "lab-meta";
+        const name = document.createElement("span");
+        name.className = "lab-name";
+        name.textContent = lab.name;
+        const diff = document.createElement("span");
+        diff.className = "lab-diff " + difficultyClass(lab.difficulty);
+        diff.textContent = lab.difficulty;
+        meta.append(name, diff);
+
+        btn.append(num, meta);
+        list.appendChild(btn);
+      });
+    }
+
+    function renderObjective(lab) {
+      document.getElementById("terminalTitle").textContent = `agent@rasd:~/lab0${lab.id} — bash — 80×24`;
+      // Objective is trusted server content (backend/data/labs.js) and carries
+      // intentional <code> markup, so innerHTML is appropriate here; it never
+      // contains user input.
+      document.getElementById("labObjectiveText").innerHTML = lab.objective;
+      document.getElementById("labXPReward").textContent = lab.isAdversary
+        ? T(`+${lab.xp} XP on containment`, `+${lab.xp} نقطة عند الاحتواء`)
+        : T(`+${lab.xp} XP Reward`, `+${lab.xp} نقطة مكافأة`);
+      document.getElementById("labCompletedStatus").style.display = completedLabs.includes(lab.id)
+        ? "inline-block"
+        : "none";
+      // The flag panel is meaningless for the adversary lab.
+      document.getElementById("flagSubmitCard").style.display = lab.isAdversary ? "none" : "";
+    }
+
+    // ---- attempt lifecycle ---------------------------------------------------
+
+    async function switchLab(id) {
+      activeLabId = id;
+      adversaryContained = false;
+      renderSidebar();
+      await startAttempt();
+      document.getElementById("terminalInput")?.focus();
+    }
+
+    async function startAttempt() {
+      stopPressureTimer();
+      hideForensics();
+      try {
+        const res = await labApi("POST", `/labs/${activeLabId}/start`, {
+          pressureMode: pressureModeEnabled,
+          lang: lang(),
+        });
+        attemptId = res.data.attemptId;
+        currentLab = res.data.lab;
+        renderObjective(currentLab);
+        clearTerminal();
+
+        if (res.data.pressure && !completedLabs.includes(activeLabId)) {
+          startPressureTimer(res.data.pressure.timeLimitMs);
+        }
+
+        if (currentLab.isAdversary && res.data.adversary) {
+          appendLine(
+            T(
+              "A live adversary is probing your systems. Type 'help' for defensive commands.",
+              "خصم حيّ يفحص أنظمتك. اكتب 'help' لرؤية أوامر الدفاع."
+            ),
+            "hint"
+          );
+          if (res.data.adversary.focus && res.data.adversary.focus.length) {
+            appendLine(
+              T(
+                "Weak-point targeting is ON — the adversary will reach your weakest stages sooner.",
+                "استهداف نقاط الضعف مُفعّل — سيصل الخصم إلى مراحلك الأضعف مبكرًا."
+              ),
+              "hint"
+            );
+          }
+          renderAdversaryMove(res.data.adversary.move);
+          if (res.data.adversary.rationale) {
+            appendLine("↳ " + (lang() === "ar" ? res.data.adversary.rationale.ar : res.data.adversary.rationale.en), "rationale");
+          }
+        }
+      } catch (err) {
+        appendLine(`${T("Failed to start lab", "تعذّر بدء المختبر")}: ${err.message}`, "error");
+      }
+    }
+
+    function renderAdversaryMove(move) {
+      appendLine(`[INCOMING] ${move.category.toUpperCase()} — ${move.mitre}`, "incoming");
+      appendLine(lang() === "ar" ? move.narrative.ar : move.narrative.en, "data");
+    }
+
+    // ---- command execution ---------------------------------------------------
+
+    async function executeTerminalCommand(cmdString) {
+      appendLine(`agent@rasd:~$ ${cmdString}`, "echo");
+      if (!attemptId) {
+        appendLine(T("No active attempt. Select a lab first.", "لا توجد محاولة نشطة. اختر مختبرًا أولاً."), "error");
+        return;
+      }
+      setBusy(true);
+      try {
+        const res = await labApi("POST", "/labs/command", { attemptId, command: cmdString, lang: lang() });
+        const d = res.data;
+        if (d.action === "clear") {
+          clearTerminal();
+          return;
+        }
+        appendLines(d.lines);
+
+        if (d.submit && d.submit.correct && !d.submit.alreadyCompleted) {
+          await onLabSolved(d.submit, false);
+        }
+
+        if (d.contained) {
+          adversaryContained = true;
+          stopPressureTimer();
+          if (d.completion && !d.completion.alreadyCompleted) {
+            await onLabSolved(d.completion, true);
+          } else {
+            await refreshCompleted();
+          }
+          if (d.forensics && d.forensics.items) openForensics(d.forensics.items);
+        }
+      } catch (err) {
+        // The attempt lives in server memory; after a redeploy or eviction it
+        // is gone (404). Recover gracefully by starting a fresh attempt instead
+        // of leaving the trainee stuck on an error line.
+        if (err.status === 404) {
+          appendLine(T("This lab session expired — starting a fresh one.", "انتهت صلاحية جلسة المختبر — نبدأ جلسة جديدة."), "hint");
+          await startAttempt();
+        } else {
+          appendLine(`${T("Command failed", "فشل تنفيذ الأمر")}: ${err.message}`, "error");
+        }
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    // Lightweight busy indicator (U5): disable input and show a running dot
+    // while a request is in flight, so a slow network doesn't look frozen.
+    function setBusy(busy) {
+      const input = document.getElementById("terminalInput");
+      if (input) input.disabled = busy;
+      const dot = document.querySelector(".status-dot");
+      if (dot) dot.classList.toggle("status-dot-busy", busy);
+      if (!busy && input) input.focus();
+    }
+
+    async function submitFlagFromInput() {
+      const input = document.getElementById("directFlagInput");
+      const val = input.value.trim();
+      if (!val) {
+        alert(T("Please enter a flag first!", "الرجاء إدخال العلم أولاً!"));
+        return;
+      }
+      if (!attemptId) return;
+      try {
+        const res = await labApi("POST", "/labs/submit", { attemptId, flag: val });
+        const d = res.data;
+        appendLines(d.lines);
+        if (d.correct && !d.alreadyCompleted) await onLabSolved(d, false);
+      } catch (err) {
+        appendLine(`${T("Flag submission failed", "فشل إرسال العلم")}: ${err.message}`, "error");
+      }
+      input.value = "";
+    }
+
+    async function onLabSolved(result, isAdversary) {
+      await refreshCompleted();
+      if (window.navBar && typeof window.navBar.updateUserStats === "function") {
+        window.navBar.updateUserStats();
+      }
+      if (!isAdversary) {
+        let msg = T(
+          `Outstanding work! Flag accepted. +${result.xpAwarded} XP added to your profile.`,
+          `عمل رائع! تم قبول العلم. +${result.xpAwarded} نقطة أُضيفت إلى ملفك.`
+        );
+        if (result.pressureBonus > 0) {
+          msg += " " + T(`⚡ +${result.pressureBonus} Pressure Bonus for beating the clock!`, `⚡ +${result.pressureBonus} مكافأة ضغط لسبقك الوقت!`);
+        }
+        showCelebration(msg);
+      }
+    }
+
+    async function refreshCompleted() {
+      try {
+        const res = await labApi("GET", `/labs?lang=${lang()}`);
+        completedLabs = res.data.completed || [];
+        renderSidebar();
+        if (currentLab) renderObjective(currentLab);
+      } catch (_) {
+        /* non-fatal */
+      }
+    }
+
+    // ---- Pressure Mode (cosmetic client timer) -------------------------------
+
+    function togglePressureMode() {
+      pressureModeEnabled = document.getElementById("pressureModeToggle").checked;
+      // The deadline is set at attempt start on the server, so restart the
+      // current attempt to (de)activate it.
+      startAttempt();
+    }
+
+    function startPressureTimer(timeLimitMs) {
+      stopPressureTimer();
+      pressureDeadline = Date.now() + timeLimitMs;
+      pressureRunActive = true;
+      const display = document.getElementById("pressureTimerDisplay");
+      display.style.display = "inline-block";
+      updatePressureTimerDisplay();
+      pressureTimerInterval = setInterval(updatePressureTimerDisplay, 1000);
+      pressureDistractionInterval = setInterval(() => {
+        const line = PRESSURE_DISTRACTIONS[Math.floor(Math.random() * PRESSURE_DISTRACTIONS.length)];
+        appendLine(lang() === "ar" ? line[1] : line[0], "hint");
+      }, PRESSURE_DISTRACTION_INTERVAL_MS);
+    }
+
+    function stopPressureTimer() {
+      if (pressureTimerInterval) clearInterval(pressureTimerInterval);
+      if (pressureDistractionInterval) clearInterval(pressureDistractionInterval);
+      pressureTimerInterval = null;
+      pressureDistractionInterval = null;
+      pressureRunActive = false;
+      pressureDeadline = null;
+      const display = document.getElementById("pressureTimerDisplay");
+      display.style.display = "none";
+      display.classList.remove("pressure-timer-critical");
+    }
+
+    function updatePressureTimerDisplay() {
+      const display = document.getElementById("pressureTimerDisplay");
+      const remainingMs = pressureDeadline - Date.now();
+      if (remainingMs <= 0) {
+        display.textContent = "⏱ 0:00";
+        handlePressureTimeout();
+        return;
+      }
+      const totalSeconds = Math.ceil(remainingMs / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      display.textContent = `⏱ ${minutes}:${String(seconds).padStart(2, "0")}`;
+      display.classList.toggle("pressure-timer-critical", remainingMs <= 30000);
+    }
+
+    async function handlePressureTimeout() {
+      stopPressureTimer();
+      appendLine(
+        T(
+          "[TIME'S UP] The pressure window closed before completion. No bonus this run — normal XP still applies.",
+          "[انتهى الوقت] أُغلقت نافذة الضغط قبل الإكمال. لا مكافأة هذه المرة — تبقى النقاط العادية."
+        ),
+        "error"
+      );
+      try {
+        if (attemptId) await labApi("POST", "/labs/timeout", { attemptId });
+      } catch (err) {
+        console.error("Timeout report failed:", err);
+      }
+    }
+
+    // ---- forensics UI --------------------------------------------------------
+
+    function openForensics(items) {
+      forensicsItems = items;
+      const list = document.getElementById("forensicsList");
+      list.textContent = "";
+
+      items.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "forensics-row";
+        row.dataset.id = item.id;
+
+        const happened = document.createElement("input");
+        happened.type = "checkbox";
+        happened.className = "fx-happened";
+        happened.setAttribute("aria-label", T("This happened", "حدث هذا"));
+
+        const order = document.createElement("input");
+        order.type = "number";
+        order.min = "1";
+        order.className = "fx-order";
+        order.placeholder = "#";
+
+        const entry = document.createElement("input");
+        entry.type = "radio";
+        entry.name = "fx-entry";
+        entry.className = "fx-entry";
+        entry.value = item.id;
+        entry.setAttribute("aria-label", T("Entry point", "نقطة الدخول"));
+
+        const text = document.createElement("span");
+        text.className = "fx-text";
+        text.textContent = lang() === "ar" ? item.ar : item.en;
+
+        const orderLabel = document.createElement("span");
+        orderLabel.className = "fx-mini";
+        orderLabel.textContent = T("order", "الترتيب");
+        const entryLabel = document.createElement("span");
+        entryLabel.className = "fx-mini";
+        entryLabel.textContent = T("entry", "الدخول");
+
+        row.append(happened, text, orderLabel, order, entryLabel, entry);
+        list.appendChild(row);
+      });
+
+      document.getElementById("forensicsSubmitBtn").onclick = submitForensics;
+      document.getElementById("forensicsOverlay").classList.add("active");
+    }
+
+    function hideForensics() {
+      document.getElementById("forensicsOverlay").classList.remove("active");
+    }
+
+    async function submitForensics() {
+      const rows = [...document.querySelectorAll("#forensicsList .forensics-row")];
+      const chosen = rows
+        .filter((r) => r.querySelector(".fx-happened").checked)
+        .map((r) => ({ id: r.dataset.id, order: Number(r.querySelector(".fx-order").value) || 999 }))
+        .sort((a, b) => a.order - b.order)
+        .map((c) => c.id);
+      const entryEl = document.querySelector("#forensicsList .fx-entry:checked");
+      const entryPoint = entryEl ? entryEl.value : null;
+
+      try {
+        const res = await labApi("POST", "/labs/forensics", { attemptId, selected: chosen, entryPoint });
+        hideForensics();
+        renderAfterAction(res.data);
+      } catch (err) {
+        alert(`${T("Could not score investigation", "تعذّر تقييم التحقيق")}: ${err.message}`);
+      }
+    }
+
+    // ---- after-action report -------------------------------------------------
+
+    function el(tag, cls, text) {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+
+    function renderAfterAction(data) {
+      const body = document.getElementById("afterActionBody");
+      body.textContent = "";
+      const isAr = lang() === "ar";
+      const score = data.score;
+      const report = data.report || {};
+
+      // Score summary
+      const scoreCard = el("div", "aa-score");
+      scoreCard.append(
+        el("div", "aa-score-num", String(score.score)),
+        el("div", "aa-score-label", T("Investigation score / 100", "درجة التحقيق / 100"))
+      );
+      const breakdown = el("div", "aa-breakdown");
+      breakdown.append(
+        el("span", null, `${T("Detection", "الاكتشاف")}: ${score.detection}/50`),
+        el("span", null, `${T("Order", "الترتيب")}: ${score.order}/30`),
+        el("span", null, `${T("Entry point", "نقطة الدخول")}: ${score.entryPoint}/20`)
+      );
+      scoreCard.appendChild(breakdown);
+      body.appendChild(scoreCard);
+
+      // Timeline
+      body.appendChild(el("h3", "aa-h3", T("Attack timeline", "التسلسل الزمني للهجوم")));
+      const tl = el("ol", "aa-timeline");
+      (report.timeline || []).forEach((m) => {
+        const li = el("li");
+        const catLabel = isAr ? m.categoryLabel.ar : m.categoryLabel.en;
+        li.append(el("span", "aa-stage", `${catLabel} — ${m.mitre}`));
+        li.append(el("span", "aa-dur", ` (${(m.durationMs / 1000).toFixed(1)}s)`));
+        if (m.rationale) {
+          li.append(el("div", "aa-rationale", (isAr ? m.rationale.ar : m.rationale.en)));
+        }
+        li.append(el("span", "aa-decided", m.decidedBy === "model" ? T(" [chosen by AI]", " [اختاره الذكاء الاصطناعي]") : ""));
+        tl.appendChild(li);
+      });
+      body.appendChild(tl);
+
+      // Time per stage
+      if ((report.timePerStage || []).length) {
+        body.appendChild(el("h3", "aa-h3", T("Time per stage", "الوقت لكل مرحلة")));
+        const ul = el("ul", "aa-list");
+        report.timePerStage.forEach((s) => {
+          ul.appendChild(el("li", null, `${isAr ? s.label.ar : s.label.en}: ${(s.ms / 1000).toFixed(1)}s`));
+        });
+        body.appendChild(ul);
+      }
+
+      // Failed defenses
+      body.appendChild(el("h3", "aa-h3", T("Defenses that did not stop the adversary", "دفاعات لم توقف الخصم")));
+      if ((report.failedDefenses || []).length) {
+        const ul = el("ul", "aa-list");
+        report.failedDefenses.forEach((d) => {
+          const label = isAr ? d.label.ar : d.label.en;
+          const cat = d.categoryLabel ? (isAr ? d.categoryLabel.ar : d.categoryLabel.en) : "";
+          ul.appendChild(el("li", null, cat ? `${label} — ${cat}` : label));
+        });
+        body.appendChild(ul);
+      } else {
+        body.appendChild(el("p", "aa-sub", T("Every defense you deployed was effective.", "كل دفاع نشرته كان فعّالًا.")));
+      }
+
+      // What would have worked
+      body.appendChild(el("h3", "aa-h3", T("What would have stopped each technique", "ما كان سيوقف كل تقنية")));
+      const wl = el("ul", "aa-list");
+      (report.wouldHaveWorked || []).forEach((w) => {
+        const cat = isAr ? w.categoryLabel.ar : w.categoryLabel.en;
+        const counters = (w.counters || []).map((c) => (isAr ? c.label.ar : c.label.en)).join(isAr ? "، " : ", ");
+        wl.appendChild(el("li", null, `${cat}: ${counters || T("(blanket containment only)", "(احتواء شامل فقط)")}`));
+      });
+      body.appendChild(wl);
+
+      // Pressure result
+      if (report.pressure) {
+        const p = report.pressure;
+        const line = p.beatClock
+          ? T(`Pressure Mode: beat the clock with ${(p.remainingMs / 1000).toFixed(0)}s to spare.`, `وضع الضغط: سبقت الوقت بـ ${(p.remainingMs / 1000).toFixed(0)} ثانية.`)
+          : T("Pressure Mode: time ran out before containment.", "وضع الضغط: انتهى الوقت قبل الاحتواء.");
+        body.appendChild(el("p", "aa-sub", line));
+      }
+
+      document.getElementById("afterActionOverlay").classList.add("active");
+    }
+
+    function closeAfterAction() {
+      document.getElementById("afterActionOverlay").classList.remove("active");
+    }
+
+    // ---- overlays / misc -----------------------------------------------------
+
+    function showCelebration(msg) {
+      document.getElementById("celebrationMessage").textContent = msg;
+      document.getElementById("celebrationOverlay").classList.add("active");
+    }
+    function closeCelebration() {
+      document.getElementById("celebrationOverlay").classList.remove("active");
+    }
+    function resetActiveLab() {
+      if (confirm(T("Reset active terminal sandbox context? All screen history will be cleared.", "إعادة تعيين سياق الطرفية؟ سيُمسح كل سجل الشاشة."))) {
+        clearTerminal();
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      if (typeof ModernNavBar !== "undefined" && !window.navBar) {
+        window.navBar = new ModernNavBar();
+        window.navBar.render();
+      }
+
+      const terminalInput = document.getElementById("terminalInput");
+      // Wire controls via addEventListener (no inline on* handlers — CSP bans them).
+      document.getElementById("celebrationAckBtn")?.addEventListener("click", closeCelebration);
+      document.getElementById("afterActionCloseBtn")?.addEventListener("click", closeAfterAction);
+      document.getElementById("trafficReset")?.addEventListener("click", resetActiveLab);
+      document.getElementById("pressureModeToggle")?.addEventListener("change", togglePressureMode);
+      document.getElementById("flagSubmitBtn")?.addEventListener("click", submitFlagFromInput);
+      const history = [];
+      let historyIndex = -1;
+      terminalInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          const val = terminalInput.value.trim();
+          if (!val) return;
+          history.push(val);
+          historyIndex = history.length;
+          executeTerminalCommand(val);
+          terminalInput.value = "";
+        } else if (e.key === "ArrowUp") {
+          if (!history.length) return;
+          e.preventDefault();
+          historyIndex = Math.max(0, historyIndex - 1);
+          terminalInput.value = history[historyIndex];
+        } else if (e.key === "ArrowDown") {
+          if (!history.length) return;
+          e.preventDefault();
+          historyIndex = Math.min(history.length, historyIndex + 1);
+          terminalInput.value = history[historyIndex] || "";
+        }
+      });
+
+      // Esc closes any open overlay (U4) and returns focus to the terminal.
+      document.addEventListener("keydown", (e) => {
+        if (e.key !== "Escape") return;
+        let closed = false;
+        document.querySelectorAll(".aa-overlay.active, .celebration-overlay.active").forEach((o) => {
+          o.classList.remove("active");
+          closed = true;
+        });
+        if (closed) terminalInput.focus();
+      });
+
+      // Re-render language-dependent lab metadata when the switcher changes.
+      window.addEventListener("languageChanged", () => {
+        loadLabs().then(() => {
+          if (labsById[activeLabId]) {
+            currentLab = labsById[activeLabId];
+            renderObjective(currentLab);
+          }
+        });
+      });
+
+      try {
+        await loadLabs();
+        await switchLab(1);
+        terminalInput.focus();
+      } catch (err) {
+        appendLine(`${T("Could not load labs", "تعذّر تحميل المختبرات")}: ${err.message}`, "error");
+      }
+    });
+  </script>
+
+  <style>
+    /* Premium Glassmorphic Cyber Style overrides for Terminal */
+    .terminal-shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    .training-header {
+      margin-bottom: 32px;
+      text-align: left;
+    }
+
+    .training-header h1 {
+      font-size: 2.8rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin: 8px 0;
+      letter-spacing: -0.5px;
+    }
+
+    .terminal-layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 32px;
+      margin-top: 24px;
+    }
+
+    .terminal-window {
+      background: rgba(5, 15, 14, 0.95);
+      border: 1px solid var(--border-mid);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(5, 15, 14, 0.5), 0 0 20px rgba(126, 217, 166, 0.05);
+      display: flex;
+      flex-direction: column;
+      height: 600px;
+    }
+
+    .terminal-chrome {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-dim);
+      padding: 12px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .traffic-lights {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tl {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+      cursor: pointer;
+    }
+
+    .tl-red { background: #e06c5b; }
+    .tl-yellow { background: #f3a05e; }
+    .tl-green { background: #7ed9a6; }
+
+    .terminal-title {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      font-weight: bold;
+    }
+
+    .terminal-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+    }
+
+    .status-dot.green {
+      background: #7ed9a6;
+      box-shadow: 0 0 8px #7ed9a6;
+    }
+
+    .status-dot.status-dot-busy {
+      background: #f3a05e;
+      box-shadow: 0 0 8px #f3a05e;
+      animation: pulse-busy 0.8s ease-in-out infinite;
+    }
+    @keyframes pulse-busy {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    #terminalInput:disabled { opacity: 0.6; }
+
+    .terminal-output {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.92rem;
+      line-height: 1.6;
+      color: #ece8da;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .terminal-welcome-text {
+      color: var(--accent-primary);
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .terminal-instruction-text {
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .terminal-separator {
+      color: var(--border-dim);
+      margin-bottom: 16px;
+    }
+
+    .terminal-input-row {
+      display: flex;
+      align-items: center;
+      background: rgba(5, 15, 14, 0.98);
+      border-top: 1px solid var(--border-dim);
+      padding: 16px 24px;
+    }
+
+    .terminal-prompt {
+      color: var(--accent-primary);
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    #terminalInput {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #ece8da;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    .terminal-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .terminal-info-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-mid);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-panel);
+      transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+
+    .terminal-info-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent-primary);
+    }
+
+    .terminal-info-card h4 {
+      margin: 0 0 16px 0;
+      color: var(--accent-primary);
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+    }
+
+    .lab-selector-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .lab-select-btn {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-dim);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      width: 100%;
+    }
+
+    .lab-select-btn:hover {
+      border-color: var(--accent-primary);
+      background: rgba(126, 217, 166, 0.03);
+    }
+
+    .lab-select-btn.active {
+      border-color: var(--accent-primary);
+      background: rgba(126, 217, 166, 0.08);
+      box-shadow: inset 0 0 10px rgba(126, 217, 166, 0.08);
+    }
+
+    .lab-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border-mid);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      transition: all 0.25s ease;
+      flex-shrink: 0;
+    }
+
+    .lab-meta {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .lab-name {
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: var(--text-primary);
+    }
+
+    .lab-diff {
+      font-size: 0.72rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .lab-diff.beginner { color: var(--accent-primary); }
+    .lab-diff.intermediate { color: var(--accent-blue); }
+    .lab-diff.advanced { color: var(--accent-red); }
+
+    .pressure-toggle-card {
+      padding: 14px 16px;
+    }
+
+    .pressure-toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .pressure-toggle-row h4 {
+      margin: 0 0 4px 0;
+    }
+
+    .pressure-toggle-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin: 0;
+    }
+
+    .pressure-switch {
+      position: relative;
+      display: inline-block;
+      width: 42px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .pressure-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .pressure-switch-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-mid);
+      border-radius: 24px;
+      transition: background 0.2s ease;
+    }
+
+    .pressure-switch-slider::before {
+      content: "";
+      position: absolute;
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .pressure-switch input:checked + .pressure-switch-slider {
+      background: rgba(126, 217, 166, 0.15);
+      border-color: var(--accent-primary);
+    }
+
+    .pressure-switch input:checked + .pressure-switch-slider::before {
+      transform: translateX(18px);
+      background: var(--accent-primary);
+    }
+
+    .pressure-timer {
+      margin-left: 12px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(126, 217, 166, 0.1);
+      color: var(--accent-primary);
+      border: 1px solid rgba(126, 217, 166, 0.3);
+    }
+
+    .pressure-timer.pressure-timer-critical {
+      background: rgba(224, 108, 91, 0.12);
+      color: var(--accent-red);
+      border-color: rgba(224, 108, 91, 0.35);
+    }
+
+    .lab-objective-text {
+      font-size: 0.86rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .neon-code {
+      background: rgba(5, 15, 14, 0.3);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent-primary);
+      border: 1px solid rgba(126, 217, 166, 0.2);
+    }
+
+    .lab-badge-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .badge-completed {
+      background: rgba(126, 217, 166, 0.2);
+      color: #7ed9a6;
+      border: 1px solid rgba(126, 217, 166, 0.3);
+    }
+
+    .flag-submit-container {
+      display: flex;
+      gap: 12px;
+    }
+
+    .flag-input {
+      flex: 1;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-dim);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      color: #ece8da;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .flag-input:focus {
+      border-color: var(--accent-primary);
+    }
+
+    /* Terminal output line variants */
+    .terminal-input-echo {
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+    .terminal-success-line {
+      color: #7ed9a6;
+      background: rgba(126, 217, 166, 0.05);
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin: 4px 0;
+    }
+    .terminal-error-line {
+      color: #e06c5b;
+      background: rgba(224, 108, 91, 0.05);
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin: 4px 0;
+    }
+    .terminal-hint-line {
+      color: #f3a05e;
+      background: rgba(243, 160, 94, 0.05);
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin: 4px 0;
+    }
+    .terminal-data-line {
+      color: #ece8da;
+      margin: 4px 0;
+    }
+    .terminal-rationale-line {
+      color: #f3a05e;
+      font-style: italic;
+      margin: 2px 0 10px;
+      padding-left: 8px;
+      border-left: 2px solid rgba(243, 160, 94, 0.4);
+    }
+
+    /* Celebration Overlay */
+    .celebration-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(5, 15, 14, 0.85);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .celebration-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .celebration-card {
+      background: var(--bg-card);
+      border: 2px solid var(--accent-primary);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      max-width: 480px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 0 30px rgba(126, 217, 166, 0.2);
+      transform: scale(0.9);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .celebration-overlay.active .celebration-card {
+      transform: scale(1);
+    }
+
+    .celebration-icon {
+      font-size: 3.5rem;
+      margin-bottom: 20px;
+      animation: bounce 2s infinite;
+    }
+
+    .celebration-card h2 {
+      margin: 0 0 16px 0;
+      color: var(--accent-primary);
+      font-size: 1.8rem;
+      font-weight: 800;
+    }
+
+    .celebration-card p {
+      margin: 0 0 24px 0;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-15px); }
+      60% { transform: translateY(-7px); }
+    }
+
+    /* Forensics + after-action overlays */
+    .aa-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 15, 14, 0.9);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10001;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      padding: 24px;
+    }
+    .aa-overlay.active { opacity: 1; pointer-events: auto; }
+
+    .aa-card {
+      background: var(--bg-card);
+      border: 1px solid var(--accent-primary);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      max-width: 560px;
+      width: 100%;
+      max-height: 86vh;
+      overflow-y: auto;
+      box-shadow: 0 0 30px rgba(126, 217, 166, 0.15);
+    }
+    .aa-card-wide { max-width: 720px; }
+
+    .aa-card h2 {
+      margin: 0 0 8px;
+      color: var(--accent-primary);
+      font-size: 1.5rem;
+      font-weight: 800;
+    }
+    .aa-sub { color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; margin: 0 0 16px; }
+    .aa-h3 { color: var(--text-primary); font-size: 1rem; margin: 20px 0 8px; }
+
+    .forensics-list { display: flex; flex-direction: column; gap: 10px; }
+    .forensics-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto auto auto;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-dim);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+    }
+    .fx-text { color: var(--text-secondary); font-size: 0.85rem; line-height: 1.4; }
+    .fx-mini { color: var(--text-muted); font-size: 0.68rem; text-transform: uppercase; }
+    .fx-order { width: 46px; background: var(--bg-card); border: 1px solid var(--border-dim); color: #ece8da; border-radius: 6px; padding: 4px; }
+
+    .aa-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; flex-wrap: wrap; }
+
+    .aa-score { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .aa-score-num {
+      font-size: 2.6rem; font-weight: 800; color: var(--accent-primary);
+      min-width: 84px; text-align: center;
+    }
+    .aa-score-label { color: var(--text-secondary); font-weight: 600; }
+    .aa-breakdown { display: flex; gap: 14px; flex-wrap: wrap; color: var(--text-muted); font-size: 0.82rem; width: 100%; margin-top: 4px; }
+    .aa-timeline { color: var(--text-secondary); font-size: 0.86rem; padding-left: 20px; }
+    .aa-timeline li { margin-bottom: 10px; }
+    .aa-stage { color: var(--text-primary); font-weight: 600; }
+    .aa-dur { color: var(--text-muted); }
+    .aa-rationale { color: #f3a05e; font-style: italic; font-size: 0.8rem; margin-top: 2px; }
+    .aa-decided { color: var(--accent-primary); font-size: 0.78rem; }
+    .aa-list { color: var(--text-secondary); font-size: 0.85rem; padding-left: 20px; }
+    .aa-list li { margin-bottom: 6px; }
+
+    body.rtl .training-header { text-align: right; }
+    body.rtl .lab-select-btn, body.rtl .forensics-row { text-align: right; }
+    body.rtl .aa-timeline, body.rtl .aa-list { padding-left: 0; padding-right: 20px; }
+    body.rtl .terminal-rationale-line { border-left: none; border-right: 2px solid rgba(243, 160, 94, 0.4); padding-left: 0; padding-right: 8px; }
+
+    @media (max-width: 992px) {
+      .terminal-layout {
+        grid-template-columns: 1fr;
+      }
+      .terminal-window {
+        height: 480px;
+      }
+    }
+  </style>
+</body>
+</html>

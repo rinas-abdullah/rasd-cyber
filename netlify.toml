@@ -1,0 +1,21 @@
+# RASD Cyber — full-stack Netlify deployment (Express via Functions)
+[build]
+  command = "npm run build"
+  publish = "netlify-public"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["bcrypt"]
+  included_files = ["backend/**", "frontend/**", "css/**", "js/**", "index.html", "node_modules/**"]
+
+# All routes, including HTML shells, pass through Express so the CSP nonce
+# and auth-aware API behave exactly as they do in the local server.
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/rasd"
+  status = 200
+  force = true

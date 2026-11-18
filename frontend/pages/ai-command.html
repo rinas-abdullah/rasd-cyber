@@ -1,0 +1,219 @@
+<!doctype html>
+<html data-rasd-page="app" lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RASD AI Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#071d1c; --panel:#071d1c; --panel-2:#071d1c; --line:#0b2a28;
+    --ink:#ece8da; --muted:#6f8783; --accent:#7ed9a6; --accent-2:#7ed9a6;
+    --danger:#e06c5b; --warn:#f3a05e; --live:#7ed9a6; --dev:#f3a05e;
+    --sim:#f3a05e; --meas:#7ed9a6;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{font-family:'IBM Plex Sans Arabic',system-ui,Arial,sans-serif;background:
+    radial-gradient(1200px 600px at 80% -10%, #0b2a28 0%, transparent 60%), var(--bg);
+    color:var(--ink);min-height:100vh;line-height:1.5}
+  code,.mono{font-family:'JetBrains Mono',monospace}
+  a{color:var(--accent)}
+  header.ac-top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+    padding:18px 24px;border-bottom:1px solid var(--line);background:rgba(7, 29, 28,.7);
+    position:sticky;top:0;backdrop-filter:blur(8px);z-index:20}
+  .ac-brand{display:flex;flex-direction:column;gap:2px;margin-inline-end:auto}
+  .ac-brand h1{font-size:20px;font-weight:700;letter-spacing:.2px}
+  .ac-brand p{font-size:13px;color:var(--muted);max-width:52ch}
+  .ac-badge{font-family:'JetBrains Mono',monospace;font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--line)}
+  .ac-badge.live{color:var(--live);border-color:#10383a;background:#071d1c}
+  .ac-badge.dev{color:var(--dev);border-color:#36534f;background:#071d1c}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:10px;font-size:14px}
+  .ac-btn{background:linear-gradient(180deg,#0b2a28,#0b2a28);color:var(--ink);border:1px solid var(--line);padding:9px 14px;display:inline-flex;align-items:center;gap:8px}
+  .ac-btn:hover{border-color:#36534f}
+  .ac-btn.primary{background:linear-gradient(180deg,#0b2a28,#0b2a28);border:1px solid #10383a;color:var(--accent)}
+  .ac-btn.accent{background:linear-gradient(180deg,#0b2a28,#071d1c);color:var(--accent);border:1px solid #10383a}
+  .ac-btn:disabled{opacity:.4;cursor:not-allowed}
+  .ac-ghost{background:transparent;border:1px solid var(--line);color:var(--muted);padding:7px 12px}
+  .ac-controls{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;padding:18px 24px;border-bottom:1px solid var(--line)}
+  .ac-field{display:flex;flex-direction:column;gap:5px}
+  .ac-field label{font-size:12px;color:var(--muted)}
+  .ac-field select,.ac-field input{background:var(--panel-2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:8px 10px;font-family:inherit;min-width:150px}
+  .ac-chip,.ac-sessionchip{font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 9px;border-radius:7px;border:1px solid var(--line);color:var(--muted)}
+  .ac-sessionchip b{color:var(--accent)}
+  main{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:16px;padding:20px 24px;align-items:start}
+  @media(max-width:1100px){main{grid-template-columns:1fr}}
+  .ac-col{display:flex;flex-direction:column;gap:16px;min-width:0}
+  .ac-card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:14px;padding:16px}
+  .ac-card h3{font-size:14px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px;justify-content:space-between}
+  .ac-tag{font-family:'JetBrains Mono',monospace;font-size:10px;padding:2px 7px;border-radius:6px}
+  .ac-tag.sim{color:var(--sim);background:#071d1c;border:1px solid #36534f}
+  .ac-tag.meas{color:var(--meas);background:#071d1c;border:1px solid #10383a}
+  .ac-obj{font-size:14px}
+  .ac-meta{font-size:12px;color:var(--muted);margin-top:8px}
+  .ac-adv{display:flex;align-items:center;gap:8px;font-size:15px}
+  .ac-dot{width:9px;height:9px;border-radius:50%}
+  .ac-adv.active .ac-dot{background:var(--danger);box-shadow:0 0 0 4px #e06c5b22;animation:pulse 1.4s infinite}
+  .ac-adv.contained .ac-dot{background:var(--accent)}
+  @keyframes pulse{50%{box-shadow:0 0 0 8px #e06c5b00}}
+  .ac-narr{font-size:13px;color:var(--muted);margin-top:8px}
+  .ac-ev{list-style:none;display:flex;flex-direction:column;gap:7px;font-size:13px}
+  .ac-ev li{display:flex;justify-content:space-between;gap:8px;padding:7px 10px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px}
+  .ac-src{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+  .ac-decisions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .ac-decision{background:var(--panel-2);border:1px solid var(--line);color:var(--ink);padding:10px;text-align:start;font-size:13px}
+  .ac-decision:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+  .ac-decision:disabled{opacity:.4;cursor:not-allowed}
+  .ac-feed{display:flex;flex-direction:column;gap:6px;font-size:13px;max-height:200px;overflow:auto}
+  .ac-feed-row{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:12px}
+  .ac-step{color:var(--muted)}
+  .ac-eff.yes{color:var(--accent)} .ac-eff.no{color:var(--danger)}
+  .ac-mentor-msg{font-size:13px;padding:10px;border-radius:9px;background:#071d1c;border:1px solid #36534f}
+  .ac-mentor-msg.blocked{background:#0b2a28;border-color:#10383a;color:#e06c5b}
+  .ac-chip.live{color:var(--live);border-color:#10383a}.ac-chip.dev{color:var(--dev);border-color:#36534f}
+  .ac-score{font-family:'JetBrains Mono',monospace;font-size:44px;font-weight:600;margin:4px 0 12px}
+  .ac-score small{font-size:13px;color:var(--muted);font-weight:400}
+  .ac-score.pass{color:var(--accent)} .ac-score.fail{color:var(--warn)}
+  .ac-bar{display:grid;grid-template-columns:140px 1fr 34px;align-items:center;gap:8px;font-size:12px;margin:5px 0;color:var(--muted)}
+  .ac-bar-track{height:7px;background:var(--panel-2);border-radius:5px;overflow:hidden;border:1px solid var(--line)}
+  .ac-bar-fill{height:100%;background:linear-gradient(90deg,#7ed9a6,#7ed9a6)}
+  .ac-bar b{color:var(--ink);text-align:end;font-family:'JetBrains Mono',monospace}
+  .ac-rationale{list-style:none;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:5px;margin-top:10px}
+  .ac-rationale li{padding-inline-start:12px;position:relative}
+  .ac-rationale li::before{content:"•";position:absolute;inset-inline-start:0;color:var(--accent)}
+  .ac-timeline{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+  .ac-tl{font-size:12px;font-family:'JetBrains Mono',monospace;padding:6px 10px;border-radius:7px;border:1px solid var(--line);background:var(--panel-2)}
+  .ac-tl span{color:var(--muted)}
+  .ac-tl.decision{border-inline-start:3px solid var(--accent)}
+  .ac-tl.adversary{border-inline-start:3px solid var(--danger)}
+  .ac-rd-status{font-family:'JetBrains Mono',monospace;font-size:14px;padding:8px 12px;border-radius:9px;display:inline-block;margin-bottom:10px}
+  .ac-rd-status.pass{color:var(--accent);background:#071d1c;border:1px solid #10383a}
+  .ac-rd-status.warn{color:var(--warn);background:#071d1c;border:1px solid #10383a}
+  .ac-rd-status.dev{color:var(--dev);background:#071d1c;border:1px solid #36534f}
+  .ac-rd-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .ac-rd-grid div{background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:8px 10px;display:flex;flex-direction:column}
+  .ac-rd-grid span{font-size:11px;color:var(--muted)}
+  .ac-rd-grid b{font-size:20px;font-family:'JetBrains Mono',monospace}
+  .ac-verified{color:var(--accent);font-size:13px;margin-top:8px}
+  .ac-disc{font-size:11px;margin-top:8px}
+  .muted{color:var(--muted)}
+  .ac-empty{color:var(--muted);text-align:center;padding:40px 10px;border:1px dashed var(--line);border-radius:12px}
+  .ac-completed{display:none;color:var(--accent);background:#071d1c;border:1px solid #10383a;padding:10px;border-radius:10px;text-align:center}
+  .ac-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+  .ac-busy{display:none;position:fixed;inset:0;background:#071d1ccc;align-items:center;justify-content:center;z-index:50}
+  .ac-spinner{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .ac-toast{position:fixed;inset-inline:0;bottom:24px;margin:auto;width:max-content;max-width:90vw;padding:12px 18px;border-radius:10px;opacity:0;transform:translateY(10px);transition:.25s;pointer-events:none;z-index:60;font-size:14px}
+  .ac-toast.show{opacity:1;transform:none}
+  .ac-toast.ok{background:#071d1c;border:1px solid #10383a;color:var(--accent)}
+  .ac-toast.err{background:#0b2a28;border:1px solid #10383a;color:#e06c5b}
+  .ac-crisis{border-color:#a94c3d!important}
+  .ac-crisis-timer{font:600 28px 'JetBrains Mono',monospace;color:var(--warn);margin:7px 0}
+  .ac-crisis-event{border-inline-start:3px solid var(--warn);padding:7px 9px;background:var(--panel-2);border-radius:6px;margin-top:7px;font-size:12px}
+  .ac-crisis-event.danger{border-color:var(--danger)}
+  .ac-crisis-event.success{border-color:var(--accent)}
+  .ac-fingerprint-axis{display:grid;grid-template-columns:125px 1fr 34px;gap:8px;align-items:center;font-size:12px;margin:9px 0}
+  .ac-fingerprint-axis .ac-bar-track{height:8px}
+  .ac-fingerprint-notice{font-size:11px;margin-top:10px}
+
+</style>
+<link rel="stylesheet" href="/css/command-premium.css?v=rasd-unified-1" />
+<link rel="stylesheet" href="/css/brand-theme.css?v=rasd-unified-1" />
+</head>
+<body>
+<div class="ambient-grid" aria-hidden="true"></div>
+<div class="shell">
+  <aside class="command-sidebar" id="command-sidebar" aria-label="RASD navigation">
+    <a class="side-brand" href="/ai-command"><span class="brand-logo"><svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><path d="M20 3 35 11v18L20 37 5 29V11L20 3Z" stroke="currentColor" stroke-width="1.8"/><path d="M12 24V15h9c8 0 8 10 0 10h-9m9-5 7 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span><strong>RASD<span class="brand-point">.</span></strong><small>CYBER INTELLIGENCE</small></span></a>
+    <div class="side-caption" data-ar="مساحة العمل" data-en="WORKSPACE">مساحة العمل</div>
+    <nav class="side-links">
+      <a class="side-link selected" href="/ai-command"><span class="nav-glyph">◈</span><span data-ar="مركز القيادة" data-en="Command Center">مركز القيادة</span><span class="nav-key">01</span></a>
+      <a class="side-link" href="/dashboard"><span class="nav-glyph">▦</span><span data-ar="لوحة المعلومات" data-en="Dashboard">لوحة المعلومات</span></a>
+      <a class="side-link" href="/training"><span class="nav-glyph">⌁</span><span data-ar="مسارات التدريب" data-en="Training Paths">مسارات التدريب</span></a>
+      <a class="side-link" href="/readiness"><span class="nav-glyph">◎</span><span data-ar="الجاهزية" data-en="Readiness">الجاهزية</span></a>
+      <a class="side-link" href="/analytics"><span class="nav-glyph">▤</span><span data-ar="التحليلات" data-en="Analytics">التحليلات</span></a>
+      <a class="side-link" href="/learner-profile"><span class="nav-glyph">♧</span><span data-ar="الملف التعليمي" data-en="Learning Profile">الملف التعليمي</span></a>
+    </nav>
+    <div class="side-caption" data-ar="مهماتي" data-en="MY OPERATIONS">مهماتي</div>
+    <div class="side-tools"><button id="ac-history-toggle" class="side-link side-button" type="button"><span class="nav-glyph">◷</span><span data-ar="سجل الجلسات" data-en="Session archive">سجل الجلسات</span></button><button id="ac-shortcuts" class="side-link side-button" type="button"><span class="nav-glyph">⌘</span><span data-ar="الأوامر السريعة" data-en="Quick commands">الأوامر السريعة</span><span class="nav-key">/</span></button></div>
+    <div class="side-bottom"><span class="status-indicator"></span><div><b>RASD ENGINE</b><small data-ar="نتائج محاكاة حتمية وقابلة للتدقيق" data-en="Deterministic, auditable engine">نتائج محاكاة حتمية وقابلة للتدقيق</small></div></div>
+  </aside>
+  <div class="command-content">
+    <div class="utility-bar"><button id="ac-menu" class="utility-menu" type="button" aria-label="Toggle navigation">☰</button><span class="breadcrumbs" data-ar="مساحة العمل / مركز القيادة" data-en="Workspace / Command Center">مساحة العمل / مركز القيادة</span><span class="utility-spacer"></span><span class="utility-online"><span class="live-pip"></span> SYSTEM ONLINE</span><span class="utility-version">V3.0 / NOV 2026</span></div>
+    <section class="command-hero"><div class="hero-copy"><div class="eyebrow"><span class="eyebrow-line"></span> RASD / AI-POWERED OPERATIONS <span class="eyebrow-line"></span></div><div class="hero-kicker" data-ar="منصة المحاكاة والاستخبارات السيبرانية" data-en="CYBER INTELLIGENCE & SIMULATION">منصة المحاكاة والاستخبارات السيبرانية</div><h2 data-ar="تدرّب على التهديد. أتقن الاستجابة." data-en="Train against threats. Master response.">تدرّب على التهديد. <em>أتقن الاستجابة.</em></h2><p data-ar="بيئة استجابة تفاعلية؛ قرارات فعلية، خصم متكيف وفق القواعد، تقييم قابل للتفسير وإثبات مستقل للمهارة." data-en="A simulated, decision-driven cyber range. Rule-based adversary behavior, measurable outcomes, and independent skill verification.">بيئة استجابة تفاعلية؛ قرارات فعلية، خصم متكيف وفق القواعد، تقييم قابل للتفسير وإثبات مستقل للمهارة.</p><div class="hero-flags"><span><i></i> DETERMINISTIC CORE</span><span><i></i> EVIDENCE-BASED SCORING</span><span><i></i> SKILL VERIFICATION</span></div></div><div class="hero-visual" aria-hidden="true"><div class="radar-ring ring-a"></div><div class="radar-ring ring-b"></div><div class="radar-ring ring-c"></div><div class="radar-sweep"></div><div class="radar-center">R<span>.</span></div><div class="radar-label label-a">THREAT INTELLIGENCE</div><div class="radar-label label-b">SECURE OPERATIONS</div><span class="radar-blip blip-a"></span><span class="radar-blip blip-b"></span></div></section>
+    <div class="metric-strip"><div class="metric"><span data-ar="حالة المحرك" data-en="ENGINE STATUS">حالة المحرك</span><strong><span class="metric-dot"></span><span data-ar="جاهز" data-en="READY">جاهز</span></strong><small>CORE / ACTIVE</small></div><div class="metric"><span data-ar="الجلسات المسجلة" data-en="YOUR SESSIONS">الجلسات المسجلة</span><strong id="ac-session-count">—</strong><small data-ar="من حسابك فقط" data-en="YOUR ACCOUNT ONLY">من حسابك فقط</small></div><div class="metric"><span data-ar="حالة التدريب" data-en="TRAINING STATE">حالة التدريب</span><strong id="ac-phase-metric">IDLE</strong><small>LIVE SESSION STATE</small></div><div class="metric"><span data-ar="آخر تقييم" data-en="LAST SCORE">آخر تقييم</span><strong id="ac-score-metric">—</strong><small>MEASURED / 100</small></div></div>
+    <div class="workspace-heading"><div><span class="section-overline">MISSION CONTROL / 001</span><h2 data-ar="غرفة العمليات" data-en="Operations workspace">غرفة العمليات</h2></div><div class="workspace-buttons"><button id="ac-pause" class="outline-action" disabled type="button" data-ar="إيقاف الجلسة مؤقتًا" data-en="Pause session">إيقاف الجلسة مؤقتًا</button><button id="ac-resume" class="outline-action" disabled type="button" data-ar="استئناف الجلسة" data-en="Resume session">استئناف الجلسة</button></div></div>
+
+  <div class="legacy-workspace"><header class="ac-top">
+    <div class="ac-brand">
+      <h1 id="ac-title">RASD AI Command Center</h1>
+      <p id="ac-subtitle"></p>
+    </div>
+    <span id="ac-aimode" class="ac-badge"></span>
+    <button id="ac-langbtn" class="ac-ghost">EN</button>
+    <button id="ac-signin" class="ac-btn">Demo sign-in</button>
+    <span id="ac-authok" class="ac-chip" style="display:none">✓</span>
+  </header>
+
+  <div class="ac-controls">
+    <div class="ac-field">
+      <label id="ac-skill-label">Skill</label>
+      <select id="ac-skill"><option value="privileged-account-compromise">privileged-account-compromise</option></select>
+    </div>
+    <div class="ac-field">
+      <label id="ac-level-label">Level</label>
+      <input id="ac-level" type="number" min="1" max="10" value="4" />
+    </div>
+    <button id="ac-start" class="ac-btn primary" disabled>Start session</button>
+    <button id="ac-start-crisis" class="ac-btn accent" disabled>START CRISIS</button>
+    <span id="ac-sessionchip" class="ac-sessionchip" style="display:none"></span>
+  </div>
+
+  <main>
+    <div class="ac-col">
+      <div id="ac-stage"><div class="ac-empty"></div></div>
+    </div>
+
+    <div class="ac-col">
+      <section class="ac-card">
+        <h3 id="ac-decisions-h">Response decisions</h3>
+        <div id="ac-decisions" class="ac-decisions"></div>
+        <div class="ac-actions">
+          <button id="ac-hint" class="ac-ghost" disabled>Request a hint</button>
+          <button id="ac-endphase" class="ac-ghost" disabled>End phase</button>
+        </div>
+      </section>
+      <section class="ac-card">
+        <h3 id="ac-mentor-h">AI Mentor</h3>
+        <div id="ac-mentor"><div class="muted">—</div></div>
+      </section>
+      <section class="ac-card">
+        <h3 id="ac-feed-h">Event log</h3>
+        <div id="ac-feed" class="ac-feed"><div class="muted">—</div></div>
+      </section>
+      <div id="ac-completed" class="ac-completed">Session completed</div>
+      <button id="ac-verify" class="ac-btn accent" style="display:none">Start verification</button>
+      <button id="ac-crisis-complete" class="ac-btn accent" style="display:none">Finish crisis review</button>
+    </div>
+
+    <div class="ac-col">
+      <section class="ac-card" id="ac-eval-card"><div id="ac-eval"><div class="muted">—</div></div></section>
+      <section class="ac-card" id="ac-aar-card"><div id="ac-aar"><div class="muted">—</div></div></section>
+      <section class="ac-card" id="ac-fingerprint-card"><div id="ac-fingerprint"><div class="muted">—</div></div></section>
+      <section class="ac-card" id="ac-readiness-card"><div id="ac-readiness"><div class="muted">—</div></div></section>
+    </div>
+  </main>
+
+    </div><!-- legacy workspace -->
+    <section class="session-archive" id="ac-history-panel" hidden><div class="archive-heading"><div><span class="section-overline">OPERATION HISTORY</span><h2 data-ar="جلساتي السابقة" data-en="Session archive">جلساتي السابقة</h2></div><button type="button" id="ac-history-refresh" class="outline-action" data-ar="تحديث" data-en="Refresh">تحديث</button></div><p class="archive-hint" data-ar="جلسات حسابك فقط. افتح جلسة لاستكمال التدريب من آخر حالة محفوظة." data-en="Only your sessions are displayed. Open a session to restore its saved state.">جلسات حسابك فقط. افتح جلسة لاستكمال التدريب من آخر حالة محفوظة.</p><div id="ac-history-list" class="archive-list"><p class="muted">—</p></div></section>
+    <footer class="command-footer"><span>© RASD CYBER INTELLIGENCE</span><span>SIMULATED ≠ REAL-WORLD EVENTS · MEASURED = RULE-BASED PERFORMANCE</span></footer>
+  </div><!-- command content -->
+</div><!-- shell -->
+<div id="ac-palette" class="palette-backdrop" hidden><div class="palette" role="dialog" aria-modal="true" aria-label="Quick navigation"><div class="palette-search"><span>⌕</span><input id="ac-palette-input" placeholder="Find a workspace…" autocomplete="off" /><button id="ac-palette-close" type="button" aria-label="Close">ESC</button></div><div id="ac-palette-results" class="palette-results"></div><div class="palette-foot">RASD COMMAND PALETTE <span>↑ ↓ SELECT · ENTER OPEN</span></div></div></div>
+  <div id="ac-busy" class="ac-busy"><div class="ac-spinner"></div></div>
+  <div id="ac-toast" class="ac-toast"></div>
+
+  <script src="/js/components/aiCommandCenter.js?v=rasd-unified-2"></script>
+  <script src="/js/components/commandExperience.js?v=rasd-unified-1"></script>
+</body>
+</html>
