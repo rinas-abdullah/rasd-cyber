@@ -1,0 +1,2 @@
+# Netlify checksums applied migrations byte-for-byte: never convert line endings.
+netlify/database/migrations/*.sql -text
