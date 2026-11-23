@@ -23,3 +23,9 @@ backend/public-assets.json
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Wallet signing material (only the encrypted backend/wallet/certs.enc is committed)
+*.pem
+*.p12
+*.cer
+*.csr

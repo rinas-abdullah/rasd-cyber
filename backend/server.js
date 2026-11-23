@@ -230,6 +230,27 @@ app.get(["/favicon.ico", "/favicon.svg"], (req, res) => {
   res.set("Cache-Control", "public, max-age=86400").type("image/svg+xml").send(FAVICON_SVG);
 });
 
+// Apple Wallet booth pass: iOS shows it on the lock screen near booth 23.
+const walletPass = require("./services/walletPass");
+app.get(["/wallet", "/booth", "/23"], (req, res, next) => sendPage(res, "wallet.html", next));
+app.get("/wallet/status", (req, res) => res.json({ success: true, configured: walletPass.isConfigured() }));
+app.get("/wallet/rasd.pkpass", async (req, res, next) => {
+  try {
+    const buf = await walletPass.generatePass();
+    res.set({
+      "Content-Type": "application/vnd.apple.pkpass",
+      "Content-Disposition": 'attachment; filename="rasd-cyber-booth23.pkpass"',
+      "Cache-Control": "no-store",
+    });
+    res.send(buf);
+  } catch (err) {
+    if (err.code === "WALLET_NOT_CONFIGURED") {
+      return res.status(503).json({ success: false, message: "Wallet pass is not configured yet" });
+    }
+    next(err);
+  }
+});
+
 // Settings live on the profile page.
 app.get(ROUTES.PAGES.SETTINGS, (req, res) => res.redirect(302, "/profile"));
 

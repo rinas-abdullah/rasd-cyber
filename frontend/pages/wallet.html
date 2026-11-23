@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>رصد سايبر · جناح 23</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#071d1c; --card:#0e2e2a; --ink:#f4f4e9; --muted:#b9c8c4; --accent:#f3a05e; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:var(--bg); color:var(--ink); font-family:"IBM Plex Sans Arabic",system-ui,sans-serif; display:flex; align-items:center; justify-content:center; padding:24px 16px; }
+  main { width:100%; max-width:420px; text-align:center; }
+  .pass { background:var(--card); border-radius:18px; padding:22px 20px; text-align:start; box-shadow:0 20px 50px rgba(0,0,0,.35); position:relative; overflow:hidden; }
+  .pass::after { content:""; position:absolute; inset-inline-start:-80px; top:40px; width:220px; height:220px; border-radius:50%; border:1px solid rgba(243,160,94,.18); box-shadow:0 0 0 40px rgba(243,160,94,.04); }
+  .row { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; }
+  .brand svg { width:34px; height:34px; }
+  .lbl { color:var(--accent); font-size:11px; letter-spacing:.04em; }
+  .booth b { display:block; font-size:22px; }
+  h1 { font-size:26px; margin:26px 0 2px; line-height:1.3; position:relative; z-index:1; }
+  .en { color:var(--muted); direction:ltr; text-align:end; margin:0 0 18px; }
+  .meta { margin-top:6px; }
+  .meta b { display:block; font-size:16px; }
+  .btn { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; margin-top:22px; padding:15px 18px; border-radius:14px; background:#000; color:#fff; font-weight:700; font-size:17px; text-decoration:none; border:1px solid #333; }
+  .btn small { font-weight:400; opacity:.8; }
+  .alt { display:block; margin-top:12px; color:var(--accent); font-weight:600; text-decoration:none; }
+  .note { color:var(--muted); font-size:13px; line-height:1.7; margin-top:18px; }
+  .warn { display:none; background:#3a2a17; color:#fde2c4; border-radius:12px; padding:12px; font-size:14px; margin-top:14px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="pass">
+    <div class="row">
+      <div class="brand">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#071d1c"/><circle cx="32" cy="32" r="18" fill="none" stroke="#f3a05e" stroke-width="5"/><circle cx="32" cy="32" r="6" fill="#f3a05e"/></svg>
+        رصد سايبر
+      </div>
+      <div class="booth"><span class="lbl">BOOTH · الجناح</span><b>23</b></div>
+    </div>
+    <h1><span class="lbl" style="display:block;font-size:12px">SAIF 2026</span>المستشفى يحتاج إنقاذك</h1>
+    <p class="en">The hospital needs you</p>
+    <div class="row meta">
+      <div><span class="lbl">التاريخ · DATE</span><b dir="ltr">24–26.11.2026</b></div>
+      <div><span class="lbl">المكان · VENUE</span><b>الرياض · Riyadh</b></div>
+    </div>
+  </div>
+
+  <a class="btn" id="add" href="/wallet/rasd.pkpass">
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="15" rx="3" fill="#fff"/><rect x="2" y="8" width="20" height="3" fill="#f3a05e"/><rect x="2" y="12" width="20" height="3" fill="#5fb3a1"/></svg>
+    <span>أضف إلى Apple Wallet <small>· Add to Apple Wallet</small></span>
+  </a>
+  <div class="warn" id="warn">البطاقة تتجهّز الآن، جرّب بعد قليل. أو ادخل المنصة مباشرة من الرابط تحت.</div>
+  <a class="alt" href="/ai-command">ابدأ الأزمة الآن ← Start the crisis</a>
+  <p class="note">لما تقرب من جناح 23 يطلع لك تذكير على شاشة القفل. البطاقة ما ترسل موقعك لأحد: جوالك نفسه يقارن موقعه بموقع الجناح.<br><span dir="ltr">Near booth 23 your iPhone shows a reminder. Your location never leaves your phone.</span></p>
+</main>
+<script>
+  fetch("/wallet/status").then(function (r) { return r.json(); }).then(function (s) {
+    if (!s.configured) {
+      document.getElementById("add").style.display = "none";
+      document.getElementById("warn").style.display = "block";
+    }
+  }).catch(function () {});
+</script>
+</body>
+</html>
