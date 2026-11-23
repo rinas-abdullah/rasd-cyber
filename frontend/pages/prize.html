@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🎁 مبروك!</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#071d1c; --card:#0e2e2a; --ink:#f4f4e9; --muted:#b9c8c4; --accent:#f3a05e; --red:#ff5a5a; --green:#4fd1a5; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { min-height:100vh; font-family:"IBM Plex Sans Arabic",system-ui,sans-serif; }
+  /* ---- bait ---- */
+  #bait { min-height:100vh; background:linear-gradient(160deg,#6a11cb,#ff3d77 60%,#ffb347); color:#fff; display:flex; align-items:center; justify-content:center; padding:24px 16px; text-align:center; }
+  #bait .box { max-width:400px; width:100%; }
+  #bait .gift { font-size:84px; animation:bob 1.4s ease-in-out infinite; }
+  #bait h1 { font-size:34px; margin:8px 0; }
+  #bait p { font-size:18px; opacity:.95; line-height:1.6; }
+  #bait .prize { background:rgba(255,255,255,.18); border-radius:18px; padding:16px; margin:20px 0; font-size:20px; font-weight:700; }
+  #bait .timer { font-size:15px; background:#000; display:inline-block; padding:6px 14px; border-radius:20px; margin-bottom:18px; }
+  #bait .timer b { color:#ffde59; direction:ltr; display:inline-block; }
+  #bait button { width:100%; border:0; border-radius:16px; padding:18px; font:700 21px "IBM Plex Sans Arabic",sans-serif; background:#ffde59; color:#3a0b52; box-shadow:0 8px 0 #c9a516; cursor:pointer; animation:shake 2.5s infinite; }
+  #bait .left { margin-top:14px; font-size:14px; opacity:.9; }
+  /* ---- reveal ---- */
+  #reveal { display:none; min-height:100vh; background:var(--bg); color:var(--ink); padding:28px 16px 40px; }
+  #reveal .box { max-width:440px; margin:0 auto; }
+  .alarm { text-align:center; padding:22px 16px; border-radius:18px; background:#3b0d0d; box-shadow:0 0 0 2px var(--red) inset; animation:flash .6s 4; }
+  .alarm .ic { font-size:56px; }
+  .alarm h1 { font-size:28px; margin:6px 0 4px; color:#ffd5d5; }
+  .alarm p { color:#ffbdbd; font-size:16px; line-height:1.6; }
+  .alarm .en { direction:ltr; font-size:14px; opacity:.8; margin-top:4px; }
+  .safe { background:var(--card); border-radius:14px; padding:12px 14px; margin-top:14px; font-size:14px; color:var(--muted); line-height:1.6; }
+  .safe b { color:var(--green); }
+  h2 { font-size:19px; margin:24px 0 10px; color:var(--accent); }
+  .flag { display:flex; gap:12px; background:var(--card); border-radius:14px; padding:14px; margin-bottom:10px; align-items:flex-start; }
+  .flag .n { flex:none; width:30px; height:30px; border-radius:50%; background:var(--accent); color:#0b2624; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .flag b { display:block; font-size:16px; }
+  .flag span { color:var(--muted); font-size:14px; line-height:1.6; }
+  .hosp { border:1px dashed var(--accent); border-radius:14px; padding:14px; margin-top:20px; line-height:1.7; font-size:15px; }
+  .hosp b { color:var(--accent); }
+  .cta { display:block; text-align:center; text-decoration:none; margin-top:12px; padding:16px; border-radius:14px; font-weight:700; font-size:18px; }
+  .cta.p { background:var(--accent); color:#0b2624; }
+  .cta.s { background:#000; color:#fff; border:1px solid #333; }
+  .foot { text-align:center; color:var(--muted); font-size:13px; margin-top:22px; }
+  @keyframes bob { 50% { transform:translateY(-10px) rotate(-6deg); } }
+  @keyframes shake { 0%,80%,100% { transform:none; } 84% { transform:rotate(-2deg); } 88% { transform:rotate(2deg); } 92% { transform:rotate(-2deg); } }
+  @keyframes flash { 50% { background:#7a1010; } }
+</style>
+</head>
+<body>
+<section id="bait">
+  <div class="box">
+    <div class="gift">🎁</div>
+    <h1>مبروووك! 🎉</h1>
+    <p>أنت الزائر رقم <b>1,000</b> في المعرض اليوم</p>
+    <div class="prize">🎧 ربحت سماعة لاسلكية فاخرة</div>
+    <div class="timer">⏳ الجائزة تنتهي خلال <b id="t">00:59</b></div>
+    <button id="claim" type="button">استلم جائزتك الآن</button>
+    <div class="left">باقي <b>3</b> جوائز فقط!</div>
+  </div>
+</section>
+
+<section id="reveal">
+  <div class="box">
+    <div class="alarm">
+      <div class="ic">🎣</div>
+      <h1>انصدت! هذا تصيّد</h1>
+      <p>لو كان الرمز من مهاجم حقيقي، كان ممكن الحين يسرق بياناتك أو يطلب منك تدفع «رسوم التوصيل».</p>
+      <p class="en">You just got phished. This time it was only a demo.</p>
+    </div>
+    <div class="safe"><b>✔ لا تشيل هم:</b> هذي صفحة توعوية من فريق رَصد. ما أخذنا منك أي معلومة ولا خزّنا شي.</div>
+
+    <h2>العلامات اللي فاتتك 🚩</h2>
+    <div class="flag"><div class="n">1</div><div><b>رمز QR من مصدر مجهول</b><span>ما تعرف مين لصقه ولا وين بيوديك. شيك على الرابط قبل تفتحه.</span></div></div>
+    <div class="flag"><div class="n">2</div><div><b>جائزة أحلى من إنها تكون حقيقية</b><span>«أنت الزائر رقم 1000» حيلة قديمة تلعب على حماسك.</span></div></div>
+    <div class="flag"><div class="n">3</div><div><b>استعجال وعدّاد</b><span>«باقي 59 ثانية» و«3 جوائز فقط» عشان ما تلحق تفكر.</span></div></div>
+    <div class="flag"><div class="n">4</div><div><b>الرابط ما يخص أي جهة رسمية</b><span>الجهات الرسمية ما توزع جوائز عن طريق روابط عشوائية.</span></div></div>
+
+    <div class="hosp">🏥 <b>نفس الحيلة تطيّح مستشفيات.</b> ضغطة وحدة من موظف على رابط تصيد تكفي إن الفدية تنتشر وتوقف أجهزة المرضى. في <b>جناح 23</b> تقدر تجرّب بنفسك: أنت قائد فريق الاستجابة، وعندك 3 دقائق تنقذ المستشفى.</div>
+
+    <a class="cta p" href="/23">ورّني هالصفحة في جناح 23 وخذ بادج رَصد 🎖️</a>
+    <a class="cta s" href="/ai-command">ابدأ أزمة المستشفى الآن ← Start the crisis</a>
+    <p class="foot">رَصد سايبر · SAIF 2026 · Booth 23</p>
+  </div>
+</section>
+
+<script>
+(function () {
+  var s = 59, el = document.getElementById("t");
+  var iv = setInterval(function () { s = s > 1 ? s - 1 : 59; el.textContent = "00:" + (s < 10 ? "0" : "") + s; }, 1000);
+  document.getElementById("claim").addEventListener("click", function () {
+    clearInterval(iv);
+    document.getElementById("bait").style.display = "none";
+    document.getElementById("reveal").style.display = "block";
+    document.title = "🎣 انصدت! · رَصد";
+    window.scrollTo(0, 0);
+    if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
+  });
+})();
+</script>
+</body>
+</html>

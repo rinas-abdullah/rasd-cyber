@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>رَصد · غرفة العمليات</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#04110f; --panel:#0a2421; --line:#163d38; --ink:#f4f4e9; --muted:#8fa9a4; --accent:#f3a05e; --red:#ff4d4d; --green:#4fd1a5; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { height:100%; background:var(--bg); color:var(--ink); font-family:"IBM Plex Sans Arabic",system-ui,sans-serif; overflow:hidden; cursor:none; }
+  body.cur { cursor:default; }
+  .app { height:100vh; display:grid; grid-template-rows:auto auto 1fr auto; gap:1.2vh; padding:1.6vh 1.6vw; }
+  .mono { font-family:"IBM Plex Mono",monospace; direction:ltr; unicode-bidi:isolate; }
+  header { display:flex; justify-content:space-between; align-items:center; }
+  .brand { display:flex; align-items:center; gap:1vw; font-weight:700; font-size:2.6vh; }
+  .brand svg { width:4.4vh; height:4.4vh; }
+  .brand small { display:block; font-weight:400; font-size:1.5vh; color:var(--muted); }
+  .booth { text-align:left; font-size:1.5vh; color:var(--accent); font-weight:700; }
+  .booth b { display:block; font-family:"IBM Plex Mono",monospace; font-size:4.4vh; color:var(--ink); line-height:1; }
+  .live { display:inline-flex; align-items:center; gap:.5vw; font-size:1.5vh; color:var(--muted); margin-inline-start:2vw; }
+  .live i { width:1vh; height:1vh; border-radius:50%; background:var(--red); animation:blink 1s infinite; }
+  .banner { border-radius:1.2vh; padding:1.4vh 2vw; display:flex; align-items:center; justify-content:space-between; gap:2vw; font-weight:700; font-size:3.6vh; transition:background .6s, color .6s; }
+  .banner small { font-size:1.9vh; font-weight:400; opacity:.85; display:block; direction:ltr; text-align:right; }
+  .banner.attack { background:#3b0d0d; color:#ffd5d5; box-shadow:0 0 0 .3vh var(--red) inset; animation:pulse 1.2s infinite; }
+  .banner.rasd { background:#3a2610; color:#ffe1c2; box-shadow:0 0 0 .3vh var(--accent) inset; }
+  .banner.calm { background:#0c3a2f; color:#d4fff0; box-shadow:0 0 0 .3vh var(--green) inset; }
+  .clock { font-family:"IBM Plex Mono",monospace; font-size:6vh; line-height:1; direction:ltr; }
+  .main { display:grid; grid-template-columns:1fr 31vw; gap:1.2vw; min-height:0; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:1.4vh; position:relative; overflow:hidden; min-height:0; }
+  .panel h3 { position:absolute; top:1.2vh; inset-inline-start:1.2vw; font-size:1.6vh; color:var(--accent); font-weight:700; z-index:2; }
+  .panel h3 span { color:var(--muted); font-weight:400; }
+  canvas { display:block; width:100%; height:100%; }
+  .side { display:grid; grid-template-rows:auto 1fr; gap:1.2vh; min-height:0; }
+  .vitals { height:22vh; }
+  .vitals .nums { position:absolute; top:1vh; left:1.2vw; text-align:left; z-index:2; }
+  .vitals .nums b { font-family:"IBM Plex Mono",monospace; font-size:5vh; color:var(--green); line-height:1; transition:color .4s; }
+  .vitals .nums b.bad { color:var(--red); }
+  .vitals .nums span { display:block; font-size:1.4vh; color:var(--muted); }
+  .cta { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2vh 1.5vw; gap:1.4vh; }
+  .cta.hot { box-shadow:0 0 0 .35vh var(--accent) inset; animation:glow 1.6s infinite; }
+  .cta .q { background:#fff; border-radius:1.4vh; padding:1.2vh; width:min(23vh,24vw); aspect-ratio:1; }
+  .cta .q img { width:100%; height:100%; display:block; }
+  .cta h2 { font-size:3.2vh; line-height:1.3; }
+  .cta h2 span { color:var(--accent); }
+  .cta p { color:var(--muted); font-size:1.7vh; line-height:1.6; }
+  .cta .url { font-family:"IBM Plex Mono",monospace; font-size:1.6vh; color:var(--ink); direction:ltr; }
+  .log { height:12vh; padding:1vh 1.2vw; font-family:"IBM Plex Mono",monospace; font-size:1.55vh; line-height:1.55; overflow:hidden; display:flex; flex-direction:column-reverse; }
+  .log div { flex:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; animation:in .35s ease-out; }
+  .log .t { color:var(--muted); }
+  .log .r { color:#ff8f8f; } .log .a { color:var(--accent); } .log .g { color:var(--green); }
+  .hint { position:fixed; bottom:2vh; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.75); padding:1vh 1.6vw; border-radius:1vh; font-size:1.7vh; transition:opacity 1s; z-index:9; cursor:default; }
+  .hint.off { opacity:0; pointer-events:none; }
+  @keyframes blink { 50% { opacity:.2; } }
+  @keyframes pulse { 50% { box-shadow:0 0 0 .3vh var(--red) inset, 0 0 4vh rgba(255,77,77,.35); } }
+  @keyframes glow { 50% { box-shadow:0 0 0 .35vh var(--accent) inset, 0 0 5vh rgba(243,160,94,.3); } }
+  @keyframes in { from { opacity:0; transform:translateY(.8vh); } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#0e2e2a"/><circle cx="32" cy="32" r="18" fill="none" stroke="#f3a05e" stroke-width="5"/><circle cx="32" cy="32" r="6" fill="#f3a05e"/></svg>
+      <div>رَصد سايبر<small>غرفة عمليات المستشفى · Hospital SOC</small></div>
+      <span class="live"><i></i>LIVE SIMULATION · محاكاة</span>
+    </div>
+    <div class="booth">BOOTH · الجناح<b>23</b></div>
+  </header>
+
+  <div class="banner attack" id="banner">
+    <div id="bannerText">🚨 مستشفى يتعرض لاختراق الآن<small>Ransomware spreading across the hospital network</small></div>
+    <div><span style="font-size:1.6vh;display:block;text-align:left;opacity:.8" id="clockLbl">حتى توقف الأنظمة</span><span class="clock" id="clock">03:00</span></div>
+  </div>
+
+  <div class="main">
+    <div class="panel"><h3>شبكة المستشفى <span>· Network map</span></h3><canvas id="map"></canvas></div>
+    <div class="side">
+      <div class="panel vitals">
+        <h3>مريض العناية المركزة <span>· ICU bed 4</span></h3>
+        <div class="nums"><b id="hr">72</b><span>نبض/دقيقة · BPM</span></div>
+        <canvas id="ecg"></canvas>
+      </div>
+      <div class="panel cta" id="cta">
+        <div class="q"><img src="/frontend/assets/booth/qr-23.png" alt="QR"></div>
+        <h2>امسح الرمز <span>وأنقذ المستشفى</span><br>خلال 3 دقائق</h2>
+        <p>أنت قائد فريق الاستجابة. كل قرار يغيّر مصير المرضى.<br><span dir="ltr">Scan · lead the response · save the patients</span></p>
+        <div class="url">rasd-cyber-v3.netlify.app/23</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel log" id="log"></div>
+</div>
+<div class="hint" id="hint">اضغط أي مكان: شاشة كاملة + صوت هادئ · <span dir="ltr">Click: fullscreen + soft sound · S: sound on/off</span></div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var CYCLE = 95, ATTACK = 58, RASD = 76; // seconds: attack 0-58, rasd response 58-76, calm 76-95
+
+  // ---------- sound (off until the first click; always quiet) ----------
+  var ac = null, soundOn = false, master = null;
+  function initAudio() {
+    if (ac) return;
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    master = ac.createGain(); master.gain.value = 0.18; master.connect(ac.destination);
+  }
+  function tone(freq, dur, vol, type, when) {
+    if (!soundOn || !ac) return;
+    var t = ac.currentTime + (when || 0), o = ac.createOscillator(), g = ac.createGain();
+    o.type = type || "sine"; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.05);
+  }
+  var sfx = {
+    infect: function () { tone(330, 0.35, 0.25, "triangle"); tone(262, 0.45, 0.2, "triangle", 0.16); },
+    ping: function () { tone(1046, 1.2, 0.22); tone(1046, 0.9, 0.08, "sine", 0.375); tone(1046, 0.7, 0.04, "sine", 0.75); },
+    heal: function () { tone(523, 0.3, 0.18); tone(659, 0.3, 0.16, "sine", 0.1); tone(784, 0.5, 0.15, "sine", 0.2); },
+    beep: function (bad) { tone(bad ? 988 : 880, 0.09, bad ? 0.1 : 0.06, "sine"); }
+  };
+  document.addEventListener("click", function () {
+    initAudio(); if (ac.state === "suspended") ac.resume();
+    if (!soundOn) { soundOn = true; sfx.ping(); }
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function () {});
+    $("hint").classList.add("off");
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "s" || e.key === "S") { initAudio(); soundOn = !soundOn; if (ac.state === "suspended") ac.resume(); }
+  });
+  var curTimer; document.addEventListener("mousemove", function () { document.body.classList.add("cur"); clearTimeout(curTimer); curTimer = setTimeout(function () { document.body.classList.remove("cur"); }, 2000); });
+  setTimeout(function () { $("hint").classList.add("off"); }, 12000);
+
+  // ---------- network map ----------
+  var nodes = [
+    { id: "net", ar: "الإنترنت", en: "Internet", x: 0.07, y: 0.22, attacker: true },
+    { id: "mail", ar: "البريد", en: "Email", x: 0.24, y: 0.30 },
+    { id: "ehr", ar: "السجلات الطبية", en: "EHR server", x: 0.50, y: 0.50, core: true },
+    { id: "er", ar: "الطوارئ", en: "ER", x: 0.30, y: 0.70 },
+    { id: "icu", ar: "العناية المركزة", en: "ICU", x: 0.70, y: 0.24 },
+    { id: "lab", ar: "المختبر", en: "Lab", x: 0.48, y: 0.18 },
+    { id: "rad", ar: "الأشعة", en: "Radiology", x: 0.84, y: 0.52 },
+    { id: "rx", ar: "الصيدلية", en: "Pharmacy", x: 0.66, y: 0.80 },
+    { id: "pump", ar: "مضخات الدواء", en: "Infusion pumps", x: 0.90, y: 0.84 },
+    { id: "bk", ar: "النسخ الاحتياطي", en: "Backups", x: 0.16, y: 0.86 }
+  ];
+  var edges = [["net","mail"],["mail","ehr"],["mail","lab"],["ehr","er"],["ehr","icu"],["ehr","lab"],["ehr","rad"],["ehr","rx"],["rx","pump"],["icu","rad"],["er","bk"],["ehr","bk"],["rad","pump"]];
+  var byId = {}; nodes.forEach(function (n) { byId[n.id] = n; });
+  // order + time (s) each node falls during the attack
+  var plan = [["mail",4,"phish"],["lab",12,"lateral"],["ehr",20,"enc"],["er",27,"enc"],["icu",33,"vitals"],["rad",39,"enc"],["rx",45,"enc"],["pump",50,"pump"],["bk",55,"backup"]];
+  var parent = { mail: "net", lab: "mail", ehr: "mail", er: "ehr", icu: "ehr", rad: "ehr", rx: "ehr", pump: "rx", bk: "ehr" };
+
+  var map = $("map"), mx = map.getContext("2d"), ecg = $("ecg"), ex = ecg.getContext("2d"), dpr = 1;
+  function fit() {
+    dpr = window.devicePixelRatio || 1;
+    [map, ecg].forEach(function (c) { var r = c.getBoundingClientRect(); c.width = r.width * dpr; c.height = r.height * dpr; });
+  }
+  window.addEventListener("resize", fit); fit();
+
+  // ---------- log ----------
+  var msgs = {
+    phish: ["r", "رسالة تصيد فتحها موظف الاستقبال", "Phishing link opened · reception-pc-07"],
+    lateral: ["r", "حركة جانبية نحو المختبر", "Lateral movement → LAB-SRV via SMB"],
+    enc: ["r", "تشفير ملفات", "Files encrypted · .locked"],
+    vitals: ["r", "شاشات العلامات الحيوية متوقفة", "ICU monitors offline"],
+    pump: ["r", "أوامر غير مصرح بها لمضخات الدواء", "Unauthorized commands to infusion pumps"],
+    backup: ["r", "المهاجم يحاول حذف النسخ الاحتياطي", "Attacker targeting backups"]
+  };
+  function stamp() { var d = new Date(); return [d.getHours(), d.getMinutes(), d.getSeconds()].map(function (v) { return (v < 10 ? "0" : "") + v; }).join(":"); }
+  function log(cls, ar, en) {
+    var el = document.createElement("div");
+    el.innerHTML = '<span class="t">[' + stamp() + ']</span> <span class="' + cls + '">' + ar + ' · <span dir="ltr">' + en + '</span></span>';
+    var box = $("log"); box.insertBefore(el, box.firstChild);
+    while (box.children.length > 14) box.removeChild(box.lastChild);
+  }
+  var noise = [
+    ["a", "تنبيه: ارتفاع غير طبيعي في حركة الشبكة", "Anomalous outbound traffic 4.2 GB"],
+    ["a", "محاولة دخول فاشلة على حساب المدير", "Failed admin login x37"],
+    ["a", "اتصال بخادم تحكم مشبوه", "Beacon to C2 185.xx.xx.12:443"],
+    ["a", "عملية مشبوهة: vssadmin delete shadows", "Suspicious process: vssadmin"]
+  ];
+
+  // ---------- simulation state ----------
+  var start = performance.now() / 1000, last = -1, state = {}, packets = [], lastNoise = 0, heal = {};
+  function reset() { state = {}; heal = {}; packets = []; nodes.forEach(function (n) { state[n.id] = n.attacker ? "bad" : "ok"; }); }
+  reset();
+  function setBanner(kind, html, lbl) { var b = $("banner"); b.className = "banner " + kind; $("bannerText").innerHTML = html; $("clockLbl").textContent = lbl; }
+
+  function step(t) {
+    // phase changes
+    if (t < last) { reset(); setBanner("attack", '🚨 مستشفى يتعرض لاختراق الآن<small>Ransomware spreading across the hospital network</small>', "حتى توقف الأنظمة"); $("cta").classList.remove("hot"); log("r", "بداية هجوم جديد", "New intrusion detected"); }
+    plan.forEach(function (p) {
+      if (last < p[1] && t >= p[1]) {
+        state[p[0]] = "bad"; var m = msgs[p[2]]; log(m[0], m[1] + " · " + byId[p[0]].ar, m[2]); sfx.infect();
+      }
+      if (last < p[1] - 1.2 && t >= p[1] - 1.2) packets.push({ from: parent[p[0]], to: p[0], t0: t, dur: 1.2 });
+    });
+    if (t < ATTACK && t - lastNoise > 5 + Math.random() * 3) { lastNoise = t; var n = noise[Math.floor(Math.random() * noise.length)]; log(n[0], n[1], n[2]); }
+    if (last < ATTACK && t >= ATTACK) {
+      setBanner("rasd", '🛰️ رَصد يكتشف الهجوم ويعزل الأجهزة<small>Rasd response team containing the attack</small>', "زمن الاستجابة");
+      log("a", "تفعيل وضع الأزمة · عزل الشبكة", "Crisis mode ON · isolating segments"); sfx.ping();
+    }
+    if (t >= ATTACK && t < RASD) {
+      var sweep = (t - ATTACK) / (RASD - ATTACK - 2);
+      nodes.forEach(function (n) {
+        if (!n.attacker && state[n.id] === "bad" && n.x < sweep * 1.05 && !heal[n.id]) { heal[n.id] = t; state[n.id] = "ok"; log("g", "تم العزل والاستعادة · " + n.ar, "Contained & restored · " + n.en); sfx.heal(); }
+      });
+    }
+    if (last < RASD && t >= RASD) {
+      nodes.forEach(function (n) { if (!n.attacker) state[n.id] = "ok"; });
+      setBanner("calm", '✅ تم إنقاذ المستشفى… هذي المرة<small>Saved this time. Next time, you lead the team.</small>', "دورك الآن");
+      $("cta").classList.add("hot"); log("g", "كل الأنظمة تعمل · المرضى بأمان", "All systems nominal · patients safe"); sfx.heal();
+    }
+    // clock: 03:00 -> 00:07 during attack, then counts the response time
+    var c;
+    if (t < ATTACK) c = Math.max(7, Math.round(180 - (t / ATTACK) * 173));
+    else if (t < RASD) c = Math.round(t - ATTACK);
+    else c = 180;
+    $("clock").textContent = (c / 60 | 0).toString().padStart(2, "0") + ":" + (c % 60).toString().padStart(2, "0");
+    last = t;
+  }
+
+  // ---------- drawing ----------
+  function drawMap(t) {
+    var W = map.width, H = map.height; mx.clearRect(0, 0, W, H);
+    var pad = 60 * dpr, P = function (n) { return [pad + n.x * (W - pad * 2), pad * 0.8 + n.y * (H - pad * 1.6)]; };
+    // grid
+    mx.strokeStyle = "rgba(79,209,165,0.05)"; mx.lineWidth = 1;
+    for (var gx = 0; gx < W; gx += 40 * dpr) { mx.beginPath(); mx.moveTo(gx, 0); mx.lineTo(gx, H); mx.stroke(); }
+    for (var gy = 0; gy < H; gy += 40 * dpr) { mx.beginPath(); mx.moveTo(0, gy); mx.lineTo(W, gy); mx.stroke(); }
+    // edges
+    edges.forEach(function (e) {
+      var a = P(byId[e[0]]), b = P(byId[e[1]]), bad = state[e[0]] === "bad" && state[e[1]] === "bad";
+      mx.strokeStyle = bad ? "rgba(255,77,77,0.55)" : "rgba(143,169,164,0.25)"; mx.lineWidth = (bad ? 2.2 : 1.4) * dpr;
+      mx.setLineDash(bad ? [6 * dpr, 6 * dpr] : []); mx.lineDashOffset = -t * 30 * dpr;
+      mx.beginPath(); mx.moveTo(a[0], a[1]); mx.lineTo(b[0], b[1]); mx.stroke();
+    });
+    mx.setLineDash([]);
+    // packets
+    packets = packets.filter(function (p) { return t - p.t0 < p.dur; });
+    packets.forEach(function (p) {
+      var k = (t - p.t0) / p.dur, a = P(byId[p.from]), b = P(byId[p.to]);
+      var x = a[0] + (b[0] - a[0]) * k, y = a[1] + (b[1] - a[1]) * k;
+      mx.fillStyle = "#ff4d4d"; mx.shadowColor = "#ff4d4d"; mx.shadowBlur = 18 * dpr;
+      mx.beginPath(); mx.arc(x, y, 5 * dpr, 0, 7); mx.fill(); mx.shadowBlur = 0;
+    });
+    // rasd sweep
+    if (t >= ATTACK && t < RASD) {
+      var sx = pad + Math.min(1.05, (t - ATTACK) / (RASD - ATTACK - 2)) * (W - pad * 2);
+      var g = mx.createLinearGradient(sx - 160 * dpr, 0, sx, 0); g.addColorStop(0, "rgba(243,160,94,0)"); g.addColorStop(1, "rgba(243,160,94,0.28)");
+      mx.fillStyle = g; mx.fillRect(sx - 160 * dpr, 0, 160 * dpr, H);
+      mx.strokeStyle = "#f3a05e"; mx.lineWidth = 2 * dpr; mx.beginPath(); mx.moveTo(sx, 0); mx.lineTo(sx, H); mx.stroke();
+    }
+    // nodes
+    nodes.forEach(function (n) {
+      var p = P(n), bad = state[n.id] === "bad", r = (n.core ? 26 : 19) * dpr, col = bad ? "#ff4d4d" : (heal[n.id] && t - heal[n.id] < 2 ? "#f3a05e" : "#4fd1a5");
+      if (bad) { var pr = r + ((t * 1.4) % 1) * 22 * dpr; mx.strokeStyle = "rgba(255,77,77," + (1 - ((t * 1.4) % 1)) * 0.6 + ")"; mx.lineWidth = 2 * dpr; mx.beginPath(); mx.arc(p[0], p[1], pr, 0, 7); mx.stroke(); }
+      mx.fillStyle = "#0a2421"; mx.strokeStyle = col; mx.lineWidth = 3 * dpr; mx.shadowColor = col; mx.shadowBlur = 14 * dpr;
+      mx.beginPath(); mx.arc(p[0], p[1], r, 0, 7); mx.fill(); mx.stroke(); mx.shadowBlur = 0;
+      mx.fillStyle = col; mx.font = "700 " + (n.core ? 15 : 12) * dpr + "px 'IBM Plex Mono', monospace"; mx.textAlign = "center"; mx.textBaseline = "middle";
+      mx.fillText(n.attacker ? "☠" : bad ? "🔒" : "✓", p[0], p[1] + 1);
+      mx.fillStyle = "#f4f4e9"; mx.font = "700 " + 15 * dpr + "px 'IBM Plex Sans Arabic', sans-serif"; mx.fillText(n.ar, p[0], p[1] + r + 16 * dpr);
+      mx.fillStyle = "#8fa9a4"; mx.font = "500 " + 11 * dpr + "px 'IBM Plex Mono', monospace"; mx.fillText(n.en, p[0], p[1] + r + 33 * dpr);
+    });
+  }
+
+  var ecgX = 0, ecgPrevY = null, beatPhase = 0, lastBeat = 0, hr = 72;
+  function ecgShape(ph) { // ph 0..1 within a beat
+    if (ph < 0.08) return Math.sin(ph / 0.08 * Math.PI) * 0.12;
+    if (ph < 0.16) return 0;
+    if (ph < 0.18) return -0.15;
+    if (ph < 0.21) return 1;
+    if (ph < 0.24) return -0.35;
+    if (ph < 0.34) return 0;
+    if (ph < 0.5) return Math.sin((ph - 0.34) / 0.16 * Math.PI) * 0.25;
+    return 0;
+  }
+  function drawEcg(t, dt) {
+    var W = ecg.width, H = ecg.height, attack = state.icu === "bad";
+    var target = t < ATTACK ? (attack ? 128 + 12 * Math.sin(t) : 72 + (t / ATTACK) * 30) : 74;
+    hr += (target - hr) * Math.min(1, dt * 0.8);
+    $("hr").textContent = Math.round(hr); $("hr").className = hr > 100 ? "bad" : "";
+    beatPhase += dt * hr / 60;
+    if (beatPhase >= 1) { beatPhase -= 1; sfx.beep(hr > 100); }
+    var speed = W / 4 * dt; // 4 s across
+    var steps = Math.max(1, Math.round(speed / dpr));
+    for (var i = 0; i < steps; i++) {
+      var ph = beatPhase - (steps - 1 - i) * (dt * hr / 60) / steps; if (ph < 0) ph += 1;
+      var jitter = attack ? (Math.random() - 0.5) * 0.12 : 0;
+      var y = H * 0.62 - (ecgShape(ph) + jitter) * H * 0.4;
+      var x = ecgX + speed * (i + 1) / steps;
+      ex.clearRect(x, 0, 14 * dpr, H);
+      if (ecgPrevY !== null && x > ecgX) { ex.strokeStyle = hr > 100 ? "#ff4d4d" : "#4fd1a5"; ex.lineWidth = 2 * dpr; ex.beginPath(); ex.moveTo(x - speed / steps, ecgPrevY); ex.lineTo(x, y); ex.stroke(); }
+      ecgPrevY = y;
+    }
+    ecgX += speed; if (ecgX > W) { ecgX = 0; ecgPrevY = null; }
+  }
+
+  var prev = performance.now() / 1000;
+  function frame() {
+    var now = performance.now() / 1000, dt = Math.min(0.1, now - prev); prev = now;
+    var t = (now - start) % CYCLE;
+    step(t); drawMap(t); drawEcg(t, dt);
+    requestAnimationFrame(frame);
+  }
+  log("r", "بداية هجوم جديد", "New intrusion detected");
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

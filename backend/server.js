@@ -233,6 +233,9 @@ app.get(["/favicon.ico", "/favicon.svg"], (req, res) => {
 // Apple Wallet booth pass: iOS shows it on the lock screen near booth 23.
 const walletPass = require("./services/walletPass");
 app.get(["/wallet", "/booth", "/23"], (req, res, next) => sendPage(res, "wallet.html", next));
+// Booth laptop attract screen, and the phishing-awareness QR demo.
+app.get("/wall", (req, res, next) => sendPage(res, "wall.html", next));
+app.get("/prize", (req, res, next) => sendPage(res, "prize.html", next));
 app.get("/wallet/status", (req, res) => res.json({ success: true, configured: walletPass.isConfigured() }));
 app.get("/wallet/rasd.pkpass", async (req, res, next) => {
   try {
