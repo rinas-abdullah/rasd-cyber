@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>رَصد · المخترق ونورة</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#04110f; --card:#0a2421; --line:#163d38; --ink:#f4f4e9; --muted:#8fa9a4; --accent:#f3a05e; --me:#4fd1a5; --red:#ff4d4d; --green:#4fd1a5; }
+  html.hacker { --me:#ff4d4d; --bg:#120607; --card:#240c0e; --line:#3d1a1c; }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; background:var(--bg); color:var(--ink); font-family:"IBM Plex Sans Arabic",system-ui,sans-serif; overflow:hidden; -webkit-user-select:none; user-select:none; }
+  .mono { font-family:"IBM Plex Mono",monospace; direction:ltr; unicode-bidi:isolate; }
+  .app { height:100vh; display:grid; grid-template-rows:auto 1fr auto; padding:18px 22px; gap:12px; }
+  .bar { display:flex; justify-content:space-between; align-items:center; gap:12px; font-size:15px; color:var(--muted); }
+  .bar b { color:var(--ink); font-size:18px; display:block; }
+  .bar .tac { color:var(--accent); font-weight:600; }
+  .pill { border:1px solid var(--line); border-radius:20px; padding:4px 12px; font-size:13px; white-space:nowrap; }
+  .stage { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:0; }
+  .av { position:relative; width:min(34vh,42vw); height:min(34vh,42vw); border-radius:50%; background:var(--card); border:4px solid var(--me); display:flex; align-items:center; justify-content:center; font-size:min(18vh,22vw); transition:transform .2s; }
+  .av::before, .av::after { content:""; position:absolute; inset:-4px; border-radius:50%; border:3px solid var(--me); opacity:0; }
+  body.talking .av::before { animation:ring 1.2s infinite; } body.talking .av::after { animation:ring 1.2s .6s infinite; }
+  body.talking .av { transform:scale(1.04); }
+  body.listening .av { opacity:.75; }
+  .who { margin-top:16px; font-size:clamp(26px,4vh,40px); font-weight:700; color:var(--me); }
+  .who small { display:block; color:var(--muted); font-size:15px; font-weight:400; }
+  .wave { height:34px; display:flex; gap:5px; align-items:center; justify-content:center; margin-top:10px; visibility:hidden; }
+  .wave i { width:6px; height:8px; border-radius:4px; background:var(--me); }
+  body.talking .wave { visibility:visible; } body.talking .wave i { animation:bar .5s ease-in-out infinite alternate; }
+  .wave i:nth-child(2){animation-delay:.1s}.wave i:nth-child(3){animation-delay:.2s}.wave i:nth-child(4){animation-delay:.3s}.wave i:nth-child(5){animation-delay:.15s}.wave i:nth-child(6){animation-delay:.25s}
+  .sub { margin-top:12px; min-height:3.2em; max-width:900px; font-size:clamp(22px,3.4vh,34px); font-weight:600; line-height:1.5; }
+  .sub .them { color:var(--muted); font-weight:400; font-size:.8em; display:block; }
+  .listen { color:var(--muted); font-size:17px; margin-top:6px; visibility:hidden; }
+  body.listening .listen { visibility:visible; }
+  .foot { display:flex; gap:12px; align-items:center; }
+  .log { flex:1; display:flex; flex-direction:column; gap:6px; font-size:15px; min-width:0; }
+  .log div { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--muted); }
+  .log b { color:var(--ink); }
+  .mic { flex:none; border:0; border-radius:18px; padding:16px 22px; font:700 19px "IBM Plex Sans Arabic",sans-serif; background:var(--accent); color:#0b2624; cursor:pointer; }
+  .mic.rec { background:var(--red); color:#fff; animation:blink 1s infinite; }
+  .kb { flex:none; border:1px solid var(--line); background:transparent; color:var(--ink); border-radius:14px; padding:14px; font-size:20px; cursor:pointer; }
+  .typer { display:none; position:fixed; inset:auto 0 0 0; background:var(--card); padding:14px; gap:10px; border-top:1px solid var(--line); z-index:8; }
+  .typer.on { display:flex; }
+  .typer input { flex:1; border-radius:12px; border:2px solid var(--line); background:var(--bg); color:var(--ink); padding:12px 14px; font:600 20px "IBM Plex Sans Arabic",sans-serif; -webkit-user-select:text; user-select:text; }
+  .typer button { border:0; border-radius:12px; padding:0 20px; font:700 18px "IBM Plex Sans Arabic",sans-serif; background:var(--accent); color:#0b2624; }
+  .end { position:fixed; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; text-align:center; padding:30px; z-index:9; background:rgba(4,17,15,.94); }
+  .end.on { display:flex; animation:in .4s; }
+  .end .ic { font-size:96px; }
+  .end h1 { font-size:clamp(32px,6vh,56px); margin-top:8px; }
+  .end.hacked h1 { color:var(--red); } .end.caught h1 { color:var(--green); }
+  .end .t { color:var(--accent); font-size:20px; margin-top:12px; font-weight:700; }
+  .end p { font-size:clamp(20px,3vh,28px); line-height:1.6; max-width:820px; margin-top:12px; }
+  .end small { color:var(--muted); margin-top:22px; font-size:16px; }
+  .gate { position:fixed; inset:0; z-index:10; background:var(--bg); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:18px; text-align:center; padding:24px; }
+  .gate h1 { font-size:clamp(28px,5vh,44px); }
+  .gate p { color:var(--muted); font-size:18px; line-height:1.6; }
+  .gate .row { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; }
+  .gate button { border:2px solid var(--line); background:var(--card); color:var(--ink); border-radius:22px; padding:22px 30px; font:700 24px "IBM Plex Sans Arabic",sans-serif; cursor:pointer; min-width:230px; }
+  .gate button span { display:block; font-size:64px; }
+  .gate button.go { background:var(--accent); color:#0b2624; border:0; }
+  @keyframes ring { from { transform:scale(1); opacity:.7; } to { transform:scale(1.35); opacity:0; } }
+  @keyframes bar { to { height:32px; } }
+  @keyframes blink { 50% { opacity:.6; } }
+  @keyframes in { from { opacity:0; } }
+</style>
+</head>
+<body>
+<div class="gate" id="gate">
+  <h1>📞 المخترق ونورة</h1>
+  <p>آيبادين يتكلمون مع بعض: مخترق يحاول يخدع موظفة الاستقبال.<br>اختاري دور هذا الآيباد.</p>
+  <div class="row" id="roles">
+    <button type="button" data-role="hacker"><span>🦹‍♂️</span>المخترق</button>
+    <button type="button" data-role="nora"><span>👩‍💼</span>نورة · الاستقبال</button>
+  </div>
+  <button type="button" class="go" id="start" style="display:none">▶️ اضغط للبدء (تشغيل الصوت)</button>
+</div>
+
+<div class="app">
+  <div class="bar">
+    <div><span class="tac" id="tac">الهندسة الاجتماعية</span><b id="title">رَصد سايبر · جناح 23</b></div>
+    <span class="pill" id="mode">…</span>
+  </div>
+  <div class="stage">
+    <div class="av" id="av"></div>
+    <div class="who" id="who"></div>
+    <div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="sub" id="sub"></div>
+    <div class="listen" id="listen">👂 يسمع…</div>
+  </div>
+  <div class="foot">
+    <div class="log" id="log"></div>
+    <button class="kb" id="kb" type="button" aria-label="اكتب">⌨️</button>
+    <button class="mic" id="mic" type="button"></button>
+  </div>
+</div>
+<div class="typer" id="typer"><input id="txt" maxlength="200" placeholder="اكتب كلامك…" enterkeyhint="send"><button id="send" type="button">إرسال</button></div>
+<div class="end" id="end"><div class="ic" id="endIc"></div><h1 id="endH"></h1><div class="t" id="endT"></div><p id="endP"></p><small>المشهد الجاي يبدأ بعد شوي…</small></div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var qs = new URLSearchParams(location.search);
+  var ROOM = /^[a-z0-9-]{1,20}$/.test(qs.get("room") || "") ? qs.get("room") : "main";
+  var CH = {
+    hacker: { em: "🦹‍♂️", ar: "المخترق", sub: "يحاول يخدع الاستقبال", pitch: 0.7, rate: 0.95, prefer: /majed|maged|tarik|naayf|hamed|male|ذكر/i },
+    nora: { em: "👩‍💼", ar: "نورة", sub: "موظفة الاستقبال · مستشفى", pitch: 1.3, rate: 1.0, prefer: /laila|mariam|hoda|salma|zariyah|amira|female|أنثى/i }
+  };
+  var role = qs.get("role"); try { role = role || localStorage.getItem("duoRole"); } catch (e) {}
+  if (!CH[role]) role = null;
+
+  // ---------- role + audio unlock ----------
+  function pick(r) {
+    role = r; try { localStorage.setItem("duoRole", r); } catch (e) {}
+    document.documentElement.className = r;
+    $("av").textContent = CH[r].em; $("who").innerHTML = CH[r].ar + "<small>" + CH[r].sub + "</small>";
+    $("mic").textContent = "🎙️ كلّم " + CH[r].ar;
+    $("roles").style.display = "none"; $("start").style.display = "";
+    $("gate").querySelector("p").innerHTML = "هذا الآيباد: <b>" + CH[r].em + " " + CH[r].ar + "</b><br>الآيباد الثاني يفتح نفس الرابط ويختار الدور الثاني.<br><small>لتغيير الدور: اضغط مطولًا على الصورة.</small>";
+  }
+  document.querySelectorAll("#roles button").forEach(function (b) { b.addEventListener("click", function () { pick(b.dataset.role); }); });
+  if (role) pick(role);
+  $("start").addEventListener("click", function () {
+    try { var u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } catch (e) {}
+    if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function () {});
+    $("gate").style.display = "none"; started = true;
+  });
+  // long-press the avatar to switch role
+  var lp; $("av").addEventListener("touchstart", function () { lp = setTimeout(function () { try { localStorage.removeItem("duoRole"); } catch (e) {} location.href = "/duo" + (ROOM !== "main" ? "?room=" + ROOM : ""); }, 2500); }, { passive: true });
+  $("av").addEventListener("touchend", function () { clearTimeout(lp); });
+
+  // ---------- voice ----------
+  var voice = null;
+  function chooseVoice() {
+    if (!role || !window.speechSynthesis) return;
+    var vs = speechSynthesis.getVoices().filter(function (v) { return /^ar/i.test(v.lang); });
+    voice = vs.filter(function (v) { return CH[role].prefer.test(v.name); })[0] || vs.filter(function (v) { return /SA/i.test(v.lang); })[0] || vs[0] || null;
+  }
+  if (window.speechSynthesis) { chooseVoice(); speechSynthesis.onvoiceschanged = chooseVoice; }
+  var queue = [], speaking = false, started = false;
+  function speakNext() {
+    if (speaking || !queue.length) return;
+    var text = queue.shift(); speaking = true; document.body.classList.add("talking");
+    var done = function () { speaking = false; document.body.classList.remove("talking"); speakNext(); };
+    if (!window.speechSynthesis) { setTimeout(done, 1200 + text.length * 80); return; }
+    if (!voice) chooseVoice();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = voice ? voice.lang : "ar-SA"; if (voice) u.voice = voice;
+    u.pitch = CH[role].pitch; u.rate = CH[role].rate;
+    u.onend = done; u.onerror = done;
+    var guard = setTimeout(done, 3000 + text.length * 150); u.onend = function () { clearTimeout(guard); done(); };
+    speechSynthesis.speak(u);
+  }
+
+  // ---------- show sync ----------
+  var lastSeq = 0, offset = 0, first = true, listenT, endT;
+  var NAMES = { hacker: "🦹‍♂️ المخترق", nora: "👩‍💼 نورة", visitor: "🧑 زائر" };
+  function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+  function addLog(l) {
+    var d = document.createElement("div"); d.innerHTML = "<b>" + NAMES[l.speaker] + ":</b> " + esc(l.text);
+    $("log").appendChild(d); while ($("log").children.length > 3) $("log").removeChild($("log").firstChild);
+  }
+  function handle(l, fresh) {
+    if (l.meta && l.meta.start) { $("title").textContent = "📞 " + (l.meta.title || ""); $("tac").textContent = "الحيلة: " + (l.meta.tactic || ""); $("end").className = "end"; }
+    if (l.speaker === "system") {
+      if (!fresh) return;
+      var hacked = l.meta.outcome === "hacked";
+      $("endIc").textContent = hacked ? "🔓" : "🛡️";
+      $("endH").textContent = hacked ? "تم الاختراق! نورة انخدعت" : "نورة كشفت المحتال!";
+      $("endT").textContent = "الحيلة: " + (l.meta.tactic || "");
+      $("endP").textContent = l.text;
+      $("end").className = "end on " + (hacked ? "hacked" : "caught");
+      clearTimeout(endT); endT = setTimeout(function () { $("end").className = "end"; }, 8500);
+      return;
+    }
+    addLog(l);
+    if (l.speaker === role) {
+      $("sub").innerHTML = esc(l.text);
+      if (fresh && started) { queue.push(l.text); speakNext(); }
+    } else {
+      $("sub").innerHTML = '<span class="them">' + NAMES[l.speaker] + "</span>" + esc(l.text);
+      if (fresh) { document.body.classList.add("listening"); clearTimeout(listenT); listenT = setTimeout(function () { document.body.classList.remove("listening"); }, 1200 + l.text.length * 80); }
+    }
+  }
+  function poll() {
+    fetch("/duo/api/state?room=" + ROOM + "&after=" + lastSeq, { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (s) {
+      offset = s.now - Date.now();
+      $("mode").textContent = s.mode === "script" ? "📜 مشاهد جاهزة" : "🧠 ذكاء اصطناعي مباشر";
+      (s.lines || []).forEach(function (l) {
+        if (l.seq <= lastSeq) return;
+        lastSeq = l.seq;
+        var fresh = !first && (s.now - l.at) < 15000;
+        handle(l, fresh);
+      });
+      first = false;
+    }).catch(function () {}).then(function () { setTimeout(poll, 1300); });
+  }
+  poll();
+
+  // ---------- visitor interjection ----------
+  function send(text) {
+    text = (text || "").trim(); if (!text) return;
+    fetch("/duo/api/say", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ room: ROOM, to: role, text: text }) }).catch(function () {});
+    $("typer").className = "typer"; $("txt").value = "";
+  }
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition, rec = null;
+  $("mic").addEventListener("click", function () {
+    if (!SR) { $("typer").className = "typer on"; $("txt").focus(); return; }
+    if (rec) { rec.stop(); return; }
+    rec = new SR(); rec.lang = "ar-SA"; rec.interimResults = false; rec.maxAlternatives = 1;
+    $("mic").classList.add("rec"); $("mic").textContent = "🔴 أسمعك… اضغط للإنهاء";
+    rec.onresult = function (e) { send(e.results[0][0].transcript); };
+    rec.onend = rec.onerror = function () { rec = null; $("mic").classList.remove("rec"); $("mic").textContent = "🎙️ كلّم " + CH[role].ar; };
+    try { rec.start(); } catch (e) { rec.onend(); }
+  });
+  $("kb").addEventListener("click", function () { $("typer").classList.toggle("on"); if ($("typer").classList.contains("on")) $("txt").focus(); });
+  $("send").addEventListener("click", function () { send($("txt").value); });
+  $("txt").addEventListener("keydown", function (e) { if (e.key === "Enter") send($("txt").value); });
+})();
+</script>
+</body>
+</html>

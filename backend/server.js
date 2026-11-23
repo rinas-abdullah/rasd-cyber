@@ -237,6 +237,29 @@ app.get(["/wallet", "/booth", "/23"], (req, res, next) => sendPage(res, "wallet.
 app.get("/wall", (req, res, next) => sendPage(res, "wall.html", next));
 app.get("/prize", (req, res, next) => sendPage(res, "prize.html", next));
 app.get(["/id", "/me"], (req, res, next) => sendPage(res, "identity.html", next));
+
+// Two booth iPads acting out a social-engineering call (hacker vs receptionist).
+const boothDuo = require("./services/boothDuo");
+const duoRoom = (v) => (/^[a-z0-9-]{1,20}$/.test(String(v || "")) ? String(v) : "main");
+app.get("/duo", (req, res, next) => sendPage(res, "duo.html", next));
+app.get("/duo/api/state", async (req, res, next) => {
+  try {
+    const after = Math.max(0, parseInt(req.query.after, 10) || 0);
+    res.set("Cache-Control", "no-store").json(await boothDuo.state(duoRoom(req.query.room), after));
+  } catch (err) { next(err); }
+});
+const duoSayLog = new Map();
+app.post("/duo/api/say", async (req, res, next) => {
+  try {
+    const ip = req.ip || "x", now = Date.now();
+    if (now - (duoSayLog.get(ip) || 0) < 4000) return res.status(429).json({ success: false });
+    duoSayLog.set(ip, now);
+    if (duoSayLog.size > 2000) duoSayLog.clear();
+    const body = req.body || {};
+    const ok = await boothDuo.say(duoRoom(body.room), body.to, body.text);
+    res.json({ success: ok });
+  } catch (err) { next(err); }
+});
 app.get("/wallet/status", (req, res) => res.json({ success: true, configured: walletPass.isConfigured() }));
 app.get("/wallet/rasd.pkpass", async (req, res, next) => {
   try {
