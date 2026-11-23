@@ -106,6 +106,7 @@ const speakMs = (text) => 1200 + String(text).length * 80;
 
 // ---------- storage ----------
 let memLines = [];
+let lastAiError = null;
 let tableReady = null;
 function pg() {
   try {
@@ -189,7 +190,7 @@ async function callAI(prompt, env = process.env, fetchImpl = globalThis.fetch) {
           generationConfig: { temperature: 0.95, maxOutputTokens: 300, responseMimeType: "application/json", thinkingConfig: { thinkingBudget: 0 } },
         }),
       });
-      if (!r.ok) throw new Error("gemini " + r.status);
+      if (!r.ok) throw new Error("gemini " + r.status + " " + (await r.text().catch(() => "")).slice(0, 160));
       const j = await r.json();
       raw = j?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
     } else if (mode === "openai") {
@@ -207,6 +208,7 @@ async function callAI(prompt, env = process.env, fetchImpl = globalThis.fetch) {
     if (!text) return null;
     return { text, outcome: ["hacked", "caught"].includes(out.outcome) ? out.outcome : "continue" };
   } catch (e) {
+    lastAiError = e.message;
     console.warn("[boothDuo] AI failed, using script:", e.message);
     return null;
   } finally { clearTimeout(timer); }
@@ -246,12 +248,12 @@ async function advance(room = "main", deps = {}) {
     const prevIdx = cur[0] && cur[0].meta ? cur[0].meta.scene : -1;
     const idx = ((Number.isInteger(prevIdx) ? prevIdx : -1) + 1) % SCENES.length;
     const sc = SCENES[idx];
-    let text = sc.lines[0][1];
+    let text = sc.lines[0][1], used = "script";
     if (mode !== "script") {
       const ai = await callAI(buildPrompt(sc, "hacker", [], 0), env, deps.fetch);
-      if (ai) text = ai.text;
+      if (ai) { text = ai.text; used = mode; }
     }
-    return insert(room, seq, "hacker", text, { scene: idx, step: 0, start: true, title: sc.title, tactic: sc.tactic, mode });
+    return insert(room, seq, "hacker", text, { scene: idx, step: 0, start: true, title: sc.title, tactic: sc.tactic, mode: used });
   }
 
   const head = cur[0] ? cur[0].meta : { scene: 0 };
@@ -268,8 +270,9 @@ async function advance(room = "main", deps = {}) {
     if (spoken.length >= MAX_AI_TURNS) return end(sc.outcome);
     const ai = await callAI(buildPrompt(sc, next, cur.filter((l) => l.speaker !== "system"), spoken.length), env, deps.fetch);
     if (ai) return insert(room, seq, next, ai.text, { ...base, outcome: ai.outcome });
-    // AI failed mid-scene: finish with the script's ending
-    return end(sc.outcome);
+    // AI failed mid-scene: say this character's next scripted line, if any
+    const fb = sc.lines.find((l, i) => l[0] === next && i >= spoken.length);
+    return fb ? insert(room, seq, next, fb[1], { ...base }) : end(sc.outcome);
   }
 
   // scripted
@@ -288,7 +291,7 @@ async function state(room = "main", after = 0, deps = {}) {
   try { await advance(room, deps); } catch (e) { err = e.message; console.warn("[boothDuo] advance:", e.message); }
   const lines = await recent(room, 14);
   const out = { lines: lines.filter((l) => l.seq > after), now: Date.now(), mode: aiMode(deps.env || process.env) };
-  if (deps.debug) out.err = err;
+  if (deps.debug) { out.err = err; out.aiErr = lastAiError; }
   return out;
 }
 
