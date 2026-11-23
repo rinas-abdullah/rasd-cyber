@@ -236,6 +236,7 @@ app.get(["/wallet", "/booth", "/23"], (req, res, next) => sendPage(res, "wallet.
 // Booth laptop attract screen, and the phishing-awareness QR demo.
 app.get("/wall", (req, res, next) => sendPage(res, "wall.html", next));
 app.get("/prize", (req, res, next) => sendPage(res, "prize.html", next));
+app.get(["/id", "/me"], (req, res, next) => sendPage(res, "identity.html", next));
 app.get("/wallet/status", (req, res) => res.json({ success: true, configured: walletPass.isConfigured() }));
 app.get("/wallet/rasd.pkpass", async (req, res, next) => {
   try {

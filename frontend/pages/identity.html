@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>هويتك السيبرانية · رَصد</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<style>
+  :root { --bg:#04110f; --card:#0a2421; --line:#163d38; --ink:#f4f4e9; --muted:#8fa9a4; --accent:#f3a05e; --green:#4fd1a5; }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html, body { min-height:100%; background:var(--bg); color:var(--ink); font-family:"IBM Plex Sans Arabic",system-ui,sans-serif; -webkit-user-select:none; user-select:none; }
+  body { background:radial-gradient(circle at 80% -10%, rgba(243,160,94,.16), transparent 50%), radial-gradient(circle at 0% 110%, rgba(79,209,165,.12), transparent 50%), var(--bg); min-height:100vh; }
+  .scr { display:none; min-height:100vh; padding:28px 20px; align-items:center; justify-content:center; flex-direction:column; text-align:center; }
+  .scr.on { display:flex; animation:in .35s ease-out; }
+  .wrap { width:100%; max-width:640px; }
+  .brand { display:inline-flex; align-items:center; gap:10px; font-weight:700; font-size:18px; color:var(--muted); }
+  .brand svg { width:30px; height:30px; }
+  .mono { font-family:"IBM Plex Mono",monospace; direction:ltr; unicode-bidi:isolate; }
+  .big { font-size:clamp(34px,7vw,64px); line-height:1.15; margin:18px 0 10px; }
+  .big span { color:var(--accent); }
+  .lead { color:var(--muted); font-size:clamp(17px,2.6vw,22px); line-height:1.7; }
+  .dna { font-size:clamp(80px,16vw,140px); margin:14px auto 0; animation:spin 6s linear infinite; display:block; width:fit-content; }
+  .btn { display:inline-block; border:0; border-radius:18px; padding:20px 44px; font:700 clamp(20px,3vw,26px) "IBM Plex Sans Arabic",sans-serif; background:var(--accent); color:#0b2624; margin-top:26px; cursor:pointer; box-shadow:0 8px 0 #b86f30; text-decoration:none; }
+  .btn:active { transform:translateY(5px); box-shadow:0 3px 0 #b86f30; }
+  .btn.ghost { background:transparent; color:var(--ink); box-shadow:none; border:2px solid var(--line); }
+  input { width:100%; margin-top:22px; border-radius:16px; border:2px solid var(--line); background:var(--card); color:var(--ink); padding:18px 20px; font:600 26px "IBM Plex Sans Arabic",sans-serif; text-align:center; outline:none; -webkit-user-select:text; user-select:text; }
+  input:focus { border-color:var(--accent); }
+  .skip { margin-top:14px; color:var(--muted); font-size:16px; background:none; border:0; font-family:inherit; cursor:pointer; }
+  /* questions */
+  .top { display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom:18px; color:var(--muted); font-size:16px; }
+  .dots { display:flex; gap:6px; } .dots i { width:34px; height:6px; border-radius:6px; background:var(--line); } .dots i.on { background:var(--accent); }
+  .clock { font-family:"IBM Plex Mono",monospace; font-size:22px; color:var(--accent); direction:ltr; }
+  .q { text-align:start; font-size:clamp(22px,3.6vw,32px); font-weight:700; line-height:1.45; margin-bottom:6px; }
+  .q small { display:block; color:var(--accent); font-size:15px; font-weight:600; margin-bottom:6px; }
+  .opts { display:grid; gap:12px; margin-top:20px; }
+  @media (min-width:700px) { .opts { grid-template-columns:1fr 1fr; } }
+  .opt { text-align:start; background:var(--card); border:2px solid var(--line); border-radius:16px; padding:18px; color:var(--ink); font:600 clamp(17px,2.4vw,20px) "IBM Plex Sans Arabic",sans-serif; line-height:1.5; cursor:pointer; min-height:84px; }
+  .opt:active, .opt.pick { border-color:var(--accent); background:#163a33; }
+  /* card */
+  .idc { width:100%; max-width:420px; margin:0 auto; border-radius:26px; padding:26px 24px 22px; text-align:start; position:relative; overflow:hidden; background:linear-gradient(155deg,#0e2e2a,#071a18); border:1px solid #23524b; box-shadow:0 30px 70px rgba(0,0,0,.45); }
+  .idc::before { content:""; position:absolute; width:300px; height:300px; border-radius:50%; left:-150px; top:-120px; border:1px solid rgba(243,160,94,.22); box-shadow:0 0 0 40px rgba(243,160,94,.04), 0 0 0 80px rgba(243,160,94,.025); }
+  .idc .hd { display:flex; justify-content:space-between; align-items:center; position:relative; font-size:13px; color:var(--muted); }
+  .idc .hd b { color:var(--ink); font-size:15px; display:flex; align-items:center; gap:8px; }
+  .idc .hd svg { width:24px; height:24px; }
+  .idc .em { font-size:76px; margin:16px 0 4px; position:relative; }
+  .idc .nm { font-size:16px; color:var(--muted); position:relative; }
+  .idc .nm b { color:var(--ink); font-size:22px; display:block; }
+  .idc h2 { font-size:30px; color:var(--accent); margin-top:10px; line-height:1.25; position:relative; }
+  .idc h2 small { display:block; font-size:14px; color:var(--muted); font-family:"IBM Plex Mono",monospace; direction:ltr; text-align:end; font-weight:500; }
+  .idc p { font-size:16px; line-height:1.7; margin-top:10px; position:relative; }
+  .idc .tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+  .idc .tags span { background:rgba(79,209,165,.12); color:var(--green); border-radius:20px; padding:4px 12px; font-size:13px; font-weight:600; }
+  .idc .ft { display:flex; justify-content:space-between; align-items:flex-end; margin-top:18px; padding-top:14px; border-top:1px dashed #23524b; font-size:12px; color:var(--muted); }
+  .idc .ft b { display:block; font-family:"IBM Plex Mono",monospace; font-size:24px; color:var(--ink); direction:ltr; text-align:right; }
+  .idc .ft .job b { font-family:inherit; font-size:14px; }
+  .res { display:flex; gap:34px; align-items:center; justify-content:center; flex-wrap:wrap; width:100%; max-width:980px; }
+  .take { text-align:center; max-width:300px; }
+  .take .qr { background:#fff; border-radius:18px; padding:12px; width:220px; height:220px; margin:0 auto 14px; }
+  .take .qr svg { width:100%; height:100%; display:block; }
+  .take h3 { font-size:22px; } .take p { color:var(--muted); font-size:15px; line-height:1.6; margin-top:6px; }
+  .share { color:var(--muted); font-size:15px; margin-top:16px; line-height:1.7; }
+  .share b { color:var(--accent); }
+  @keyframes in { from { opacity:0; transform:translateY(12px); } }
+  @keyframes spin { 50% { transform:rotate(12deg) scale(1.06); } }
+</style>
+</head>
+<body>
+<section class="scr on" id="s-home"><div class="wrap">
+  <div class="brand"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#0e2e2a"/><circle cx="32" cy="32" r="18" fill="none" stroke="#f3a05e" stroke-width="5"/><circle cx="32" cy="32" r="6" fill="#f3a05e"/></svg>رَصد سايبر · جناح 23</div>
+  <div class="dna">🧬</div>
+  <h1 class="big">وش <span>هويتك السيبرانية</span>؟</h1>
+  <p class="lead">مستشفى يتعرض لاختراق، وأنت في غرفة الأزمة.<br>5 قرارات، 60 ثانية، وتطلع لك بطاقة هويتك.</p>
+  <p class="lead mono" style="font-size:15px;margin-top:6px">Discover your cyber identity · 60 sec</p>
+  <button class="btn" id="go" type="button">ابدأ ←</button>
+</div></section>
+
+<section class="scr" id="s-name"><div class="wrap">
+  <h1 class="big" style="font-size:clamp(30px,5vw,48px)">وش نكتب على بطاقتك؟</h1>
+  <p class="lead">اسمك الأول بس، ويظهر على البطاقة فقط. ما نحفظه.</p>
+  <input id="nm" maxlength="20" placeholder="اسمك الأول" autocomplete="off" enterkeyhint="go">
+  <button class="btn" id="nmGo" type="button">يلا ←</button><br>
+  <button class="skip" id="nmSkip" type="button">تخطّ بدون اسم</button>
+</div></section>
+
+<section class="scr" id="s-q"><div class="wrap">
+  <div class="top"><div class="dots" id="dots"></div><div class="clock" id="clk">00:00</div></div>
+  <div class="q" id="qt"></div>
+  <div class="opts" id="opts"></div>
+</div></section>
+
+<section class="scr" id="s-res"><div class="res">
+  <div id="card"></div>
+  <div class="take" id="take">
+    <div class="qr" id="qr"></div>
+    <h3>📲 خذ بطاقتك على جوالك</h3>
+    <p>امسح الرمز، خذ لقطة شاشة، وانشرها مع <b>#رصد_سايبر</b></p>
+    <button class="btn" id="next" type="button">التالي ←</button>
+  </div>
+</div></section>
+
+<section class="scr" id="s-mine"><div class="wrap">
+  <div id="card2"></div>
+  <p class="share">📸 خذ لقطة شاشة وانشرها مع <b>#رصد_سايبر</b><br>وتعال جناح 23 جرّب الأزمة الكاملة.</p>
+  <a class="btn" href="/ai-command">جرّب الأزمة الكاملة ←</a><br>
+  <a class="btn ghost" href="/id" style="margin-top:12px;font-size:18px;padding:14px 28px">سوّ اختبارك من جديد</a>
+</div></section>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var MARK = '<svg viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#123a36"/><circle cx="32" cy="32" r="18" fill="none" stroke="#f3a05e" stroke-width="5"/><circle cx="32" cy="32" r="6" fill="#f3a05e"/></svg>';
+  var P = {
+    calm:  { em: "🧊", ar: "القائد الهادئ", en: "The Calm Commander", job: "قائد الاستجابة للحوادث", jobEn: "Incident Commander",
+             d: "ما تنفعل. ترتّب الفريق وتوزّع الأدوار قبل أي ضغطة زر، والكل يرتاح لما تمسك الأزمة.", tags: ["إدارة الأزمات", "القرار تحت الضغط", "قيادة الفريق"] },
+    forensic: { em: "🔍", ar: "المحقق الرقمي", en: "The Digital Detective", job: "محلل جنائي رقمي", jobEn: "DFIR Analyst",
+             d: "قبل تحكم تبي الدليل. تتبّع أثر المهاجم خطوة خطوة لين تعرف من وين دخل وكيف.", tags: ["التحليل الجنائي", "تتبّع الأثر", "دقة الملاحظة"] },
+    fast:  { em: "⚡", ar: "المستجيب السريع", en: "The Rapid Responder", job: "محلل مركز العمليات الأمنية", jobEn: "SOC Analyst",
+             d: "تعزل وتقطع الخطر بثواني. لما الكل يفكر، أنت أصلًا سكّرت الباب على المهاجم.", tags: ["سرعة الاستجابة", "العزل والاحتواء", "الحسم"] },
+    guardian: { em: "🛡️", ar: "حارس البيانات", en: "The Data Guardian", job: "مهندس أمن وحماية بيانات", jobEn: "Security Engineer",
+             d: "أول همّك المرضى وبياناتهم. تفكّر في النسخ الاحتياطي والاستمرارية قبل ما تبدأ الأزمة.", tags: ["حماية البيانات", "استمرارية العمل", "التفكير الوقائي"] }
+  };
+  var Q = [
+    { t: "الساعة 3 الفجر، شاشة في الطوارئ تقول: «ملفاتك مشفّرة». أول شي تسويه؟", o: [
+      ["أعزل الجهاز عن الشبكة فورًا", "fast"], ["أصوّر الشاشة وأحفظ السجلات قبل ألمس شي", "forensic"],
+      ["أبلّغ الفريق وأفتح غرفة أزمة", "calm"], ["أتأكد إن النسخ الاحتياطي سليم ومعزول", "guardian"]] },
+    { t: "المهاجم يطلب فدية 2 مليون ريال خلال 24 ساعة.", o: [
+      ["أبلّغ الجهات المختصة وأرتّب التواصل الرسمي", "calm"], ["أتتبّع من وين دخل وكيف", "forensic"],
+      ["أقطع كل اتصال خارجي للمهاجم الحين", "fast"], ["أبدأ الاستعادة من النسخ الاحتياطي بدل ما ندفع", "guardian"]] },
+    { t: "أجهزة العناية المركزة بدأت تبطّئ.", o: [
+      ["أحوّل الأقسام للإجراءات اليدوية عشان المرضى", "guardian"], ["أفصل شبكة الأجهزة الطبية عن باقي الشبكة", "fast"],
+      ["أشوف وش البرنامج الغريب اللي يشتغل عليها", "forensic"], ["أعيّن مسؤول لكل قسم يرفع لي تحديث كل 5 دقائق", "calm"]] },
+    { t: "موظف يقول: «فتحت رابط في إيميل غريب أمس».", o: [
+      ["أشكره وأطمّنه، ونسوي توعية بدون لوم", "calm"], ["آخذ الإيميل وأحلّل الرابط والمرفق", "forensic"],
+      ["أعطّل حسابه وأغيّر كلمات المرور فورًا", "fast"], ["أشيك وش البيانات اللي كان يقدر يوصل لها", "guardian"]] },
+    { t: "انتهت الأزمة. وش أهم شي بعدها؟", o: [
+      ["تقرير ما بعد الحادثة ودروس للكل", "calm"], ["أدوّر على أي باب خلفي خلّاه المهاجم", "forensic"],
+      ["أسرّع خطة الاستجابة عشان المرة الجاية أسرع", "fast"], ["أشفّر البيانات وأقوّي النسخ الاحتياطي", "guardian"]] }
+  ];
+
+  var name = "", qi = 0, score, t0, clockIv, idleT;
+  function show(id) { document.querySelectorAll(".scr").forEach(function (s) { s.classList.remove("on"); }); $(id).classList.add("on"); window.scrollTo(0, 0); }
+  function fmt(s) { return (s / 60 | 0).toString().padStart(2, "0") + ":" + (s % 60).toString().padStart(2, "0"); }
+  function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.random() * (i + 1) | 0, x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
+
+  function cardHTML(n, key, secs) {
+    var p = P[key]; if (!p) return "";
+    return '<div class="idc">' +
+      '<div class="hd"><b>' + MARK + 'رَصد سايبر</b><span class="mono">SAIF 2026 · BOOTH 23</span></div>' +
+      '<div class="em">' + p.em + '</div>' +
+      '<div class="nm">الهوية السيبرانية لـ<b>' + esc(n || "مستجيب رَصد") + '</b></div>' +
+      '<h2>' + p.ar + '<small>' + p.en + '</small></h2>' +
+      '<p>' + p.d + '</p>' +
+      '<div class="tags">' + p.tags.map(function (t) { return "<span>" + t + "</span>"; }).join("") + '</div>' +
+      '<div class="ft"><div>أنقذ المستشفى في<b>' + fmt(secs) + '</b></div><div class="job" style="text-align:left">وظيفتك المستقبلية<b>' + p.job + '</b><span class="mono">' + p.jobEn + '</span></div></div>' +
+    '</div>';
+  }
+
+  // ---- phone view: /id#n=..&p=..&t=.. (data stays in the URL fragment, never sent to the server) ----
+  var h = new URLSearchParams(location.hash.slice(1));
+  if (h.get("p") && P[h.get("p")]) {
+    $("card2").innerHTML = cardHTML((h.get("n") || "").slice(0, 20), h.get("p"), Math.min(5999, parseInt(h.get("t"), 10) || 0));
+    show("s-mine");
+    return;
+  }
+
+  // ---- kiosk flow (iPad) ----
+  function idle() { clearTimeout(idleT); idleT = setTimeout(home, 75000); }
+  ["touchstart", "click", "keydown"].forEach(function (e) { document.addEventListener(e, idle, { passive: true }); });
+  function home() { clearInterval(clockIv); $("nm").value = ""; show("s-home"); }
+  $("go").addEventListener("click", function () { show("s-name"); setTimeout(function () { $("nm").focus(); }, 300); });
+  function startQuiz() {
+    name = $("nm").value.trim().slice(0, 20); $("nm").blur();
+    qi = 0; score = { calm: 0, forensic: 0, fast: 0, guardian: 0 }; t0 = Date.now();
+    clearInterval(clockIv); clockIv = setInterval(function () { $("clk").textContent = fmt((Date.now() - t0) / 1000 | 0); }, 250);
+    renderQ(); show("s-q");
+  }
+  $("nmGo").addEventListener("click", startQuiz);
+  $("nmSkip").addEventListener("click", function () { $("nm").value = ""; startQuiz(); });
+  $("nm").addEventListener("keydown", function (e) { if (e.key === "Enter") startQuiz(); });
+
+  function renderQ() {
+    var q = Q[qi];
+    $("dots").innerHTML = Q.map(function (_, i) { return '<i class="' + (i <= qi ? "on" : "") + '"></i>'; }).join("");
+    $("qt").innerHTML = "<small>القرار " + (qi + 1) + " من " + Q.length + "</small>" + q.t;
+    $("opts").innerHTML = "";
+    shuffle(q.o).forEach(function (o) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "opt"; b.textContent = o[0];
+      b.addEventListener("click", function () {
+        if ($("opts").dataset.lock) return; $("opts").dataset.lock = "1";
+        b.classList.add("pick"); score[o[1]]++; score[o[1]] += (Q.length - qi) * 0.01; // earlier answers break ties
+        setTimeout(function () { delete $("opts").dataset.lock; qi++; if (qi < Q.length) renderQ(); else finish(); }, 280);
+      });
+      $("opts").appendChild(b);
+    });
+  }
+
+  function finish() {
+    clearInterval(clockIv);
+    var secs = Math.round((Date.now() - t0) / 1000);
+    var key = Object.keys(score).sort(function (a, b) { return score[b] - score[a]; })[0];
+    $("card").innerHTML = cardHTML(name, key, secs);
+    var url = location.origin + "/id#" + new URLSearchParams({ n: name, p: key, t: String(secs) }).toString();
+    try { var qr = qrcode(0, "M"); qr.addData(unescape(encodeURIComponent(url))); qr.make(); $("qr").innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); }
+    catch (e) { $("take").querySelector(".qr").style.display = "none"; }
+    show("s-res");
+  }
+  $("next").addEventListener("click", home);
+})();
+</script>
+</body>
+</html>
