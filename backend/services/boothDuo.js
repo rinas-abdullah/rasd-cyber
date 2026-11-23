@@ -284,9 +284,12 @@ async function advance(room = "main", deps = {}) {
 }
 
 async function state(room = "main", after = 0, deps = {}) {
-  try { await advance(room, deps); } catch (e) { console.warn("[boothDuo] advance:", e.message); }
+  let err = null;
+  try { await advance(room, deps); } catch (e) { err = e.message; console.warn("[boothDuo] advance:", e.message); }
   const lines = await recent(room, 14);
-  return { lines: lines.filter((l) => l.seq > after), now: Date.now(), mode: aiMode(deps.env || process.env) };
+  const out = { lines: lines.filter((l) => l.seq > after), now: Date.now(), mode: aiMode(deps.env || process.env) };
+  if (deps.debug) out.err = err;
+  return out;
 }
 
 async function say(room, to, text) {

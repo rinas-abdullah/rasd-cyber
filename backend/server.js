@@ -245,7 +245,7 @@ app.get("/duo", (req, res, next) => sendPage(res, "duo.html", next));
 app.get("/duo/api/state", async (req, res, next) => {
   try {
     const after = Math.max(0, parseInt(req.query.after, 10) || 0);
-    res.set("Cache-Control", "no-store").json(await boothDuo.state(duoRoom(req.query.room), after));
+    res.set("Cache-Control", "no-store").json(await boothDuo.state(duoRoom(req.query.room), after, { debug: req.query.debug === "1" }));
   } catch (err) { next(err); }
 });
 const duoSayLog = new Map();
