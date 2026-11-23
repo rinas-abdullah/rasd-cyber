@@ -118,7 +118,10 @@ async function ensureTable(db) {
     tableReady = db.query(`CREATE TABLE IF NOT EXISTS booth_duo_lines (
       room TEXT NOT NULL, seq INTEGER NOT NULL, speaker TEXT NOT NULL, text TEXT NOT NULL,
       meta JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      PRIMARY KEY (room, seq))`).catch((e) => { tableReady = null; throw e; });
+      PRIMARY KEY (room, seq))`)
+      // The table also ships as a Netlify Database migration; if this role
+      // may not run DDL, carry on and let the real query report problems.
+      .catch((e) => console.warn("[boothDuo] create table skipped:", e.message));
   }
   return tableReady;
 }
