@@ -58,8 +58,9 @@
 <script>
   fetch("/wallet/status").then(function (r) { return r.json(); }).then(function (s) {
     if (!s.configured) {
-      document.getElementById("add").style.display = "none";
-      document.getElementById("warn").style.display = "block";
+      // No Apple signing certificate yet: use the Walaa-hosted Wallet card,
+      // which carries the same booth-23 proximity alert.
+      document.getElementById("add").href = "https://joinwalaa.com/ar/join/rsd-saybr";
     }
   }).catch(function () {});
 </script>
