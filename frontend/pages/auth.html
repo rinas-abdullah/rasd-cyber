@@ -160,7 +160,19 @@
               <div class="form-group">
                 <label class="form-label" for="signupPassword" data-i18n="auth.label_password">Password</label>
                 <input class="form-input" id="signupPassword" type="password" data-i18n-placeholder="auth.ph_password_create" placeholder="Create a password" autocomplete="new-password" />
-                <small class="form-hint" data-i18n="auth.password_rules">At least 8 characters, with a letter and a number.</small>
+                <ul class="pw-rules" id="pwRules" aria-live="polite">
+                  <li data-rule="len"><span class="ic">○</span><span data-i18n="auth.pw_rule_len">At least 8 characters</span></li>
+                  <li data-rule="letter"><span class="ic">○</span><span data-i18n="auth.pw_rule_letter">Contains a letter</span></li>
+                  <li data-rule="number"><span class="ic">○</span><span data-i18n="auth.pw_rule_number">Contains a number</span></li>
+                  <li data-rule="match"><span class="ic">○</span><span data-i18n="auth.pw_rule_match">Both passwords match</span></li>
+                </ul>
+                <style>
+                  .pw-rules { list-style:none; margin:10px 0 0; padding:0; display:grid; gap:6px; font-size:.9rem; }
+                  .pw-rules li { display:flex; align-items:center; gap:8px; color:var(--text-muted, #8fa9a4); transition:color .2s; }
+                  .pw-rules .ic { width:20px; height:20px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:.8rem; border:1.5px solid currentColor; flex:none; }
+                  .pw-rules li.ok { color:#4fd1a5; }
+                  .pw-rules li.ok .ic { background:#4fd1a5; border-color:#4fd1a5; color:#062520; font-weight:700; }
+                </style>
               </div>
 
               <div class="form-group">
@@ -320,6 +332,23 @@
       return reason || data?.message || fallback;
     }
 
+    // Live checklist under the sign-up password: each rule turns green with a tick once met.
+    function updatePwRules() {
+      const pw = document.getElementById("signupPassword").value;
+      const confirm = document.getElementById("signupConfirmPassword").value;
+      const state = {
+        len: pw.length >= 8,
+        letter: /[A-Za-z؀-ۿ]/.test(pw),
+        number: /[0-9]/.test(pw),
+        match: pw.length > 0 && pw === confirm,
+      };
+      document.querySelectorAll("#pwRules li").forEach((li) => {
+        const ok = state[li.dataset.rule];
+        li.classList.toggle("ok", ok);
+        li.querySelector(".ic").textContent = ok ? "✓" : "○";
+      });
+    }
+
     function passwordMeetsRules(pw) {
       return pw.length >= 8 && /[A-Za-z؀-ۿ]/.test(pw) && /[0-9]/.test(pw);
     }
@@ -336,6 +365,8 @@
 
       loginForm.addEventListener("submit", handleLoginSubmit);
       signupForm.addEventListener("submit", handleSignupSubmit);
+      document.getElementById("signupPassword").addEventListener("input", updatePwRules);
+      document.getElementById("signupConfirmPassword").addEventListener("input", updatePwRules);
     }
 
     async function handleLoginSubmit(e) {
