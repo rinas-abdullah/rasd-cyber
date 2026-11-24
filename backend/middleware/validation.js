@@ -93,8 +93,19 @@ const loginSchema = z
     message: "Email or username is required",
   });
 
+// Visitors type their email (or an Arabic name) as the username. Turn it into
+// a valid handle instead of rejecting the sign-up.
+function toUsername(value, email) {
+  let v = typeof value === "string" ? value.trim() : "";
+  if (!v && typeof email === "string") v = email.trim();
+  if (v.includes("@")) v = v.split("@")[0];
+  v = v.replace(/[^A-Za-z0-9_]+/g, "_").replace(/^_+|_+$/g, "").slice(0, VALIDATION_RULES.USERNAME.MAX_LENGTH);
+  if (v.length < VALIDATION_RULES.USERNAME.MIN_LENGTH) v = (v ? v + "_" : "user_") + Math.floor(1000 + Math.random() * 9000);
+  return v.slice(0, VALIDATION_RULES.USERNAME.MAX_LENGTH);
+}
+
 const registerSchema = z
-  .object({
+  .preprocess((body) => (body && typeof body === "object" ? { ...body, username: toUsername(body.username, body.email) } : body), z.object({
     username: z
       .string()
       .trim()
@@ -110,10 +121,8 @@ const registerSchema = z
       .string()
       .min(VALIDATION_RULES.PASSWORD.MIN_LENGTH, `Password must be at least ${VALIDATION_RULES.PASSWORD.MIN_LENGTH} characters`)
       .max(VALIDATION_RULES.PASSWORD.MAX_LENGTH, `Password must be at most ${VALIDATION_RULES.PASSWORD.MAX_LENGTH} characters`)
-      .refine((value) => /[A-Z]/.test(value), "Password must include at least one uppercase letter")
-      .refine((value) => /[a-z]/.test(value), "Password must include at least one lowercase letter")
-      .refine((value) => /[0-9]/.test(value), "Password must include at least one number")
-      .refine((value) => /[^A-Za-z0-9]/.test(value), "Password must include at least one special character"),
+      .refine((value) => /[A-Za-z؀-ۿ]/.test(value), "Password must include at least one letter")
+      .refine((value) => /[0-9]/.test(value), "Password must include at least one number"),
     skillLevel: z
       .string()
       .trim()
@@ -129,7 +138,7 @@ const registerSchema = z
     confirmPassword: z.string().max(VALIDATION_RULES.PASSWORD.MAX_LENGTH).optional(),
     institution_id: z.null().optional(),
   })
-  .strict()
+  .strict())
   .refine((value) => value.confirmPassword === undefined || value.confirmPassword === value.password, {
     path: ["confirmPassword"],
     message: "Passwords do not match",

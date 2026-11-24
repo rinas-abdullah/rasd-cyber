@@ -119,12 +119,12 @@ const VALIDATION_RULES = Object.freeze({
   }),
 
   PASSWORD: Object.freeze({
-    MIN_LENGTH: 12,
+    MIN_LENGTH: 8,
     MAX_LENGTH: 128,
-    REQUIRE_UPPERCASE: true,
-    REQUIRE_LOWERCASE: true,
+    REQUIRE_UPPERCASE: false,
+    REQUIRE_LOWERCASE: false,
     REQUIRE_NUMBER: true,
-    REQUIRE_SPECIAL_CHAR: true,
+    REQUIRE_SPECIAL_CHAR: false,
   }),
 
   EMAIL: Object.freeze({

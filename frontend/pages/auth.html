@@ -160,7 +160,7 @@
               <div class="form-group">
                 <label class="form-label" for="signupPassword" data-i18n="auth.label_password">Password</label>
                 <input class="form-input" id="signupPassword" type="password" data-i18n-placeholder="auth.ph_password_create" placeholder="Create a password" autocomplete="new-password" />
-                <small class="form-hint" data-i18n="auth.password_rules">At least 12 characters, with uppercase, lowercase, a number and a symbol.</small>
+                <small class="form-hint" data-i18n="auth.password_rules">At least 8 characters, with a letter and a number.</small>
               </div>
 
               <div class="form-group">
@@ -309,11 +309,19 @@
       const first = Array.isArray(data?.errors) && data.errors.length ? String(data.errors[0]) : "";
       const reason = first.includes(": ") ? first.slice(first.indexOf(": ") + 2) : first;
       if (/Password must/i.test(reason)) return tAuth("password_rules");
+      const ar = document.documentElement.lang === "ar" || /^ar/i.test(localStorage.getItem("language") || "");
+      if (ar) {
+        if (/already|exists|taken|registered/i.test(reason + " " + (data?.message || ""))) return "هذا الإيميل أو اسم المستخدم مسجّل من قبل. جرّب تسجيل الدخول.";
+        if (/Email/i.test(reason)) return "تأكد من كتابة الإيميل بشكل صحيح.";
+        if (/Passwords do not match/i.test(reason)) return "كلمتا المرور غير متطابقتين.";
+        if (/Invalid credentials/i.test(data?.message || "")) return "الإيميل أو كلمة المرور غير صحيحة.";
+        if (/Too many/i.test(data?.message || "")) return "محاولات كثيرة، انتظر دقيقة وجرّب مرة ثانية.";
+      }
       return reason || data?.message || fallback;
     }
 
     function passwordMeetsRules(pw) {
-      return pw.length >= 12 && /[A-Z]/.test(pw) && /[a-z]/.test(pw) && /[0-9]/.test(pw) && /[^A-Za-z0-9]/.test(pw);
+      return pw.length >= 8 && /[A-Za-z؀-ۿ]/.test(pw) && /[0-9]/.test(pw);
     }
 
     function clearMessage() {
@@ -395,7 +403,8 @@
         (i) => i.value
       );
 
-      if (!email || !username || !password || !confirmPassword) {
+      // The username is optional: the server derives one from the email.
+      if (!email || !password || !confirmPassword) {
         showMessage(tAuth("err_required_signup"));
         return;
       }
