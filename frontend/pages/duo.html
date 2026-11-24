@@ -161,23 +161,47 @@
     $("vhint").textContent = good ? "" : (CH[role].g === "f" ? "ما لقيت صوت بنت عربي في هذا الجهاز. في Microsoft Edge على اللابتوب فيه «Zariyah» السعودي، وفي الآيباد: الإعدادات ← تسهيلات الاستخدام ← المحتوى المنطوق ← الأصوات ← العربية." : "ما لقيت صوت رجل عربي. جرّب Microsoft Edge (Hamed السعودي).");
   }
   $("vsel").addEventListener("change", function () { try { localStorage.setItem("duoVoice-" + role, $("vsel").value); } catch (e) {} chooseVoice(); });
-  $("vtest").addEventListener("click", function () { speechSynthesis.cancel(); queue = [CH[role].sample]; speaking = false; speakNext(); });
+  $("vtest").addEventListener("click", function () { unlock(); });
   if (window.speechSynthesis) { speechSynthesis.onvoiceschanged = function () { if (role) fillVoices(); }; }
   var queue = [], speaking = false, started = false, spokeOk = false;
   function setSnd(ok, txt) { var el = $("snd"); el.textContent = txt; el.style.borderColor = ok ? "var(--green)" : "var(--red)"; el.style.color = ok ? "var(--green)" : "#ffb3b3"; }
   // Speak something audible inside the tap so iOS/Chrome allow later speech from timers.
+  // AI voice player (Gemini TTS). Played once inside the tap so iPad allows later playback.
+  var player = new Audio(); player.preload = "auto";
   function unlock() {
-    if (!window.speechSynthesis) { setSnd(false, "🔇 المتصفح ما يدعم الصوت"); return; }
-    try { speechSynthesis.cancel(); } catch (e) {}
-    chooseVoice(); queue = [CH[role].g === "f" ? "تمام، نورة جاهزة." : "تمام، جاهز."]; speaking = false; speakNext();
+    try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
+    try { player.pause(); } catch (e) {}
+    queue = []; speaking = true; document.body.classList.add("talking"); setSnd(true, "⏳ تجهيز الصوت…");
+    var fallback = function () {
+      speaking = false; document.body.classList.remove("talking");
+      if (!window.speechSynthesis) { setSnd(false, "🔇 المتصفح ما يدعم الصوت"); return; }
+      chooseVoice(); queue = [{ text: CH[role].g === "f" ? "تمام، نورة جاهزة." : "تمام، جاهز." }]; speakNext();
+    };
+    player.onended = function () { speaking = false; document.body.classList.remove("talking"); speakNext(); };
+    player.src = "/duo/api/sample.wav?role=" + role + "&t=" + Date.now();
+    var p = player.play();
+    if (p && p.then) p.then(function () { setSnd(true, "🔊 صوت AI"); }).catch(fallback);
   }
   $("snd").addEventListener("click", unlock);
   // iOS sometimes leaves the synth paused; nudge it.
   setInterval(function () { try { if (window.speechSynthesis && speechSynthesis.paused) speechSynthesis.resume(); } catch (e) {} }, 1000);
   function speakNext() {
     if (speaking || !queue.length) return;
-    var text = queue.shift(); speaking = true; document.body.classList.add("talking");
-    var done = function () { speaking = false; document.body.classList.remove("talking"); speakNext(); };
+    var item = queue.shift(), text = item.text; speaking = true; document.body.classList.add("talking");
+    var finished = false;
+    var done = function () { if (finished) return; finished = true; speaking = false; document.body.classList.remove("talking"); speakNext(); };
+    if (item.audio) {
+      var g2 = setTimeout(done, (item.ms || 8000) + 6000);
+      player.onended = function () { clearTimeout(g2); done(); };
+      player.onerror = null;
+      player.src = "/duo/api/audio/" + item.audio;
+      var pr = player.play();
+      if (pr && pr.then) pr.then(function () { setSnd(true, "🔊 صوت AI"); }).catch(function () { clearTimeout(g2); deviceSpeak(text, done); });
+      return;
+    }
+    deviceSpeak(text, done);
+  }
+  function deviceSpeak(text, done) {
     if (!window.speechSynthesis) { setTimeout(done, 1500 + text.length * 95); return; }
     if (!voice) chooseVoice();
     var u = new SpeechSynthesisUtterance(text);
@@ -216,10 +240,10 @@
     addLog(l);
     if (l.speaker === role) {
       $("sub").innerHTML = esc(l.text);
-      if (fresh && started) { queue.push(l.text); speakNext(); }
+      if (fresh && started) { queue.push({ text: l.text, audio: l.meta && l.meta.audio, ms: l.meta && l.meta.ms }); speakNext(); }
     } else {
       $("sub").innerHTML = '<span class="them">' + NAMES[l.speaker] + "</span>" + esc(l.text);
-      if (fresh) { document.body.classList.add("listening"); clearTimeout(listenT); listenT = setTimeout(function () { document.body.classList.remove("listening"); }, 1500 + l.text.length * 95); }
+      if (fresh) { document.body.classList.add("listening"); clearTimeout(listenT); listenT = setTimeout(function () { document.body.classList.remove("listening"); }, (l.meta && l.meta.ms) || 1500 + l.text.length * 95); }
     }
   }
   function poll() {

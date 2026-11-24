@@ -248,6 +248,22 @@ app.get("/duo/api/state", async (req, res, next) => {
     res.set("Cache-Control", "no-store").json(await boothDuo.state(duoRoom(req.query.room), after, { debug: req.query.debug === "1" }));
   } catch (err) { next(err); }
 });
+app.get("/duo/api/audio/:key", async (req, res, next) => {
+  try {
+    const wav = await boothDuo.audioWav(req.params.key);
+    if (!wav) return res.status(404).end();
+    res.set({ "Content-Type": "audio/wav", "Cache-Control": "public, max-age=86400, immutable" }).send(wav);
+  } catch (err) { next(err); }
+});
+// The start button plays this inside the tap, which unlocks audio on iPad.
+app.get("/duo/api/sample.wav", async (req, res, next) => {
+  try {
+    const s = await boothDuo.sample(String(req.query.role || ""));
+    const wav = s.audio ? await boothDuo.audioWav(s.audio) : null;
+    if (!wav) return res.status(404).end();
+    res.set({ "Content-Type": "audio/wav", "Cache-Control": "no-store" }).send(wav);
+  } catch (err) { next(err); }
+});
 const duoSayLog = new Map();
 app.post("/duo/api/say", async (req, res, next) => {
   try {

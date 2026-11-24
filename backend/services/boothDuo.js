@@ -127,6 +127,132 @@ async function ensureTable(db) {
   }
   return tableReady;
 }
+// ---------- AI voices (Gemini TTS), cached per line ----------
+const crypto = require("crypto");
+const VOICES = {
+  nora: { name: "Kore", style: "بلهجة سعودية طبيعية، بصوت موظفة استقبال سعودية شابة، لطيفة ومشغولة" },
+  hacker: { name: "Algenib", style: "بلهجة سعودية طبيعية، بصوت رجل سعودي واثق ومستعجل، فيه مكر خفيف" },
+};
+const SAMPLE = { nora: "هلا والله، أنا نورة. جاهزة!", hacker: "هلا، أنا جاهز. خلنا نبدأ." };
+let memAudio = new Map();
+let memLease = new Map();
+let audioReady = null;
+let ttsPausedUntil = 0;
+function ttsOn(env = process.env) { return aiMode(env) === "gemini" && env.DUO_TTS !== "off" && Date.now() > ttsPausedUntil; }
+function audioKey(role, text, env = process.env) {
+  const v = VOICES[role];
+  return crypto.createHash("sha1").update([env.TTS_MODEL || "gemini-3.8-flash-tts", v.name, v.style, text].join("|")).digest("hex");
+}
+function wavFromPcm(pcm, rate) {
+  const h = Buffer.alloc(44);
+  h.write("RIFF", 0); h.writeUInt32LE(36 + pcm.length, 4); h.write("WAVE", 8); h.write("fmt ", 12);
+  h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(1, 22); h.writeUInt32LE(rate, 24);
+  h.writeUInt32LE(rate * 2, 28); h.writeUInt16LE(2, 32); h.writeUInt16LE(16, 34); h.write("data", 36); h.writeUInt32LE(pcm.length, 40);
+  return Buffer.concat([h, pcm]);
+}
+function wavMs(buf) {
+  try {
+    const byteRate = buf.readUInt32LE(28);
+    let i = 12;
+    while (i + 8 <= buf.length) {
+      const id = buf.toString("ascii", i, i + 4), size = buf.readUInt32LE(i + 4);
+      if (id === "data") return Math.round((Math.min(size, buf.length - i - 8) / byteRate) * 1000);
+      i += 8 + size;
+    }
+  } catch (_) {}
+  return 0;
+}
+async function ensureAudioTables(db) {
+  if (!audioReady) {
+    audioReady = db.query(`CREATE TABLE IF NOT EXISTS booth_duo_audio (key TEXT PRIMARY KEY, wav BYTEA NOT NULL, ms INTEGER NOT NULL,
+        scripted BOOLEAN NOT NULL DEFAULT false, created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+      CREATE TABLE IF NOT EXISTS booth_duo_lease (room TEXT PRIMARY KEY, until TIMESTAMPTZ NOT NULL);`)
+      .catch((e) => console.warn("[boothDuo] audio tables skipped:", e.message));
+  }
+  return audioReady;
+}
+async function getAudio(key, withWav) {
+  const db = pg();
+  if (!db) return memAudio.get(key) || null;
+  await ensureAudioTables(db);
+  const r = await db.query(withWav ? "SELECT wav, ms FROM booth_duo_audio WHERE key=$1" : "SELECT ms FROM booth_duo_audio WHERE key=$1", [key]);
+  return r.rows[0] || null;
+}
+async function putAudio(key, wav, ms, scripted) {
+  const db = pg();
+  if (!db) { memAudio.set(key, { wav, ms }); if (memAudio.size > 300) memAudio.delete(memAudio.keys().next().value); return; }
+  await ensureAudioTables(db);
+  await db.query("INSERT INTO booth_duo_audio (key, wav, ms, scripted) VALUES ($1,$2,$3,$4) ON CONFLICT (key) DO NOTHING", [key, wav, ms, !!scripted]);
+  if (Math.random() < 0.05) db.query("DELETE FROM booth_duo_audio WHERE NOT scripted AND created_at < now() - interval '2 hours'").catch(() => {});
+}
+async function ttsCall(role, text, env = process.env, fetchImpl = globalThis.fetch) {
+  const v = VOICES[role];
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 20000);
+  try {
+    const model = env.TTS_MODEL || "gemini-3.8-flash-tts";
+    const r = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+      method: "POST", signal: ctl.signal,
+      headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text }] }],
+        generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: (role === "nora" ? env.TTS_VOICE_NORA : env.TTS_VOICE_HACKER) || v.name } } } },
+      }),
+    });
+    if (r.status === 429) ttsPausedUntil = Date.now() + 10 * 60 * 1000;
+    if (!r.ok) throw new Error("tts " + r.status + " " + (await r.text().catch(() => "")).slice(0, 160));
+    const part = (await r.json())?.candidates?.[0]?.content?.parts?.find((p) => p.inlineData);
+    if (!part) throw new Error("tts: no audio");
+    let buf = Buffer.from(part.inlineData.data, "base64");
+    const mime = part.inlineData.mimeType || "";
+    if (!/wav/i.test(mime)) buf = wavFromPcm(buf, parseInt((mime.match(/rate=(\d+)/) || [])[1], 10) || 24000);
+    const ms = wavMs(buf);
+    if (!ms) throw new Error("tts: empty audio");
+    return { wav: buf, ms };
+  } catch (e) {
+    lastAiError = "TTS: " + e.message;
+    console.warn("[boothDuo] TTS failed, device voice will be used:", e.message);
+    return null;
+  } finally { clearTimeout(timer); }
+}
+// { audio: key, ms } for a line, generated once and cached.
+async function voiceFor(role, text, scripted, deps = {}) {
+  const env = deps.env || process.env;
+  if (!VOICES[role] || !ttsOn(env)) return {};
+  const key = audioKey(role, text, env);
+  const hit = await getAudio(key, false);
+  if (hit) return { audio: key, ms: hit.ms };
+  const out = await ttsCall(role, text, env, deps.ttsFetch || deps.fetch);
+  if (!out) return {};
+  await putAudio(key, out.wav, out.ms, scripted);
+  return { audio: key, ms: out.ms };
+}
+async function audioWav(key) {
+  if (!/^[a-f0-9]{40}$/.test(String(key))) return null;
+  const a = await getAudio(key, true);
+  return a && a.wav ? Buffer.from(a.wav) : null;
+}
+async function sample(role, deps = {}) {
+  if (!VOICES[role]) return {};
+  return voiceFor(role, SAMPLE[role], true, deps);
+}
+// One device at a time may create the next line (AI text + speech can take ~10 s).
+async function lease(room, on) {
+  const db = pg();
+  if (!db) {
+    const now = Date.now();
+    if (!on) { memLease.delete(room); return true; }
+    if ((memLease.get(room) || 0) > now) return false;
+    memLease.set(room, now + 25000); return true;
+  }
+  await ensureAudioTables(db);
+  if (!on) { await db.query("UPDATE booth_duo_lease SET until = now() WHERE room=$1", [room]); return true; }
+  await db.query("INSERT INTO booth_duo_lease (room, until) VALUES ($1, now() - interval '1 second') ON CONFLICT DO NOTHING", [room]);
+  const r = await db.query("UPDATE booth_duo_lease SET until = now() + interval '25 seconds' WHERE room=$1 AND until < now() RETURNING room", [room]);
+  return r.rowCount === 1;
+}
+const lineWait = (l) => (l.speaker === "system" ? END_PAUSE_MS : l.meta && l.meta.ms ? l.meta.ms + 1500 : speakMs(l.text) + GAP_MS);
+
 const rowOut = (r) => ({ seq: r.seq, speaker: r.speaker, text: r.text, meta: r.meta || {}, at: new Date(r.created_at).getTime() });
 
 async function recent(room, n = ROOM_MAX) {
@@ -136,7 +262,10 @@ async function recent(room, n = ROOM_MAX) {
   const r = await db.query("SELECT * FROM booth_duo_lines WHERE room=$1 ORDER BY seq DESC LIMIT $2", [room, n]);
   return r.rows.map(rowOut).reverse();
 }
-async function insert(room, seq, speaker, text, meta) {
+async function insert(room, seq, speaker, text, meta, deps) {
+  if (deps && (speaker === "hacker" || speaker === "nora")) {
+    meta = { ...meta, ...(await voiceFor(speaker, text, !(meta && meta.ai), deps)) };
+  }
   const db = pg();
   if (!db) {
     if (memLines.some((l) => l.room === room && l.seq === seq)) return false;
@@ -178,19 +307,25 @@ function buildPrompt(scene, speaker, transcript, turn) {
 async function callAI(prompt, env = process.env, fetchImpl = globalThis.fetch) {
   const mode = aiMode(env);
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 7000);
+  const timer = setTimeout(() => ctl.abort(), 9000);
   try {
     let raw;
     if (mode === "gemini") {
-      const model = env.GEMINI_MODEL || "gemini-2.5-flash";
-      const r = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+      // Free-tier models get rate-limited or overloaded; try the next one.
+      const models = [env.GEMINI_MODEL, "gemini-flash-lite-latest", "gemini-2.5-flash"].filter((m, i, a) => m && a.indexOf(m) === i);
+      let r;
+      for (const model of models) {
+      r = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
         method: "POST", signal: ctl.signal,
         headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
         body: JSON.stringify({
           contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.95, maxOutputTokens: 300, responseMimeType: "application/json", thinkingConfig: { thinkingBudget: 0 } },
+          generationConfig: { temperature: 0.95, maxOutputTokens: 300, responseMimeType: "application/json", ...(/2\.5-flash$/.test(model) ? { thinkingConfig: { thinkingBudget: 0 } } : {}) },
         }),
       });
+      if (r.ok || ![400, 404, 429, 500, 503].includes(r.status)) break;
+      lastAiError = "gemini " + model + " " + r.status;
+      }
       if (!r.ok) throw new Error("gemini " + r.status + " " + (await r.text().catch(() => "")).slice(0, 160));
       const j = await r.json();
       raw = j?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
@@ -224,15 +359,20 @@ function sceneLines(lines) {
 }
 
 async function advance(room = "main", deps = {}) {
+  const now = deps.now ? deps.now() : Date.now();
+  const before = await recent(room, 1);
+  if (before[0] && now - before[0].at < lineWait(before[0])) return false;
+  if (!(await lease(room, true))) return false;
+  try { return await step(room, deps); } finally { await lease(room, false).catch(() => {}); }
+}
+
+async function step(room, deps) {
   const env = deps.env || process.env;
   const now = deps.now ? deps.now() : Date.now();
   const lines = await recent(room);
   const last = lines[lines.length - 1];
   const seq = last ? last.seq + 1 : 1;
-  if (last) {
-    const wait = last.speaker === "system" ? END_PAUSE_MS : speakMs(last.text) + GAP_MS;
-    if (now - last.at < wait) return false;
-  }
+  if (last && now - last.at < lineWait(last)) return false;
   const mode = aiMode(env);
 
   const cur = sceneLines(lines);
@@ -241,7 +381,7 @@ async function advance(room = "main", deps = {}) {
   // a visitor spoke after the scene ended: the addressed character answers once
   if (ended && last.speaker === "visitor") {
     const who = last.meta.to === "hacker" ? "hacker" : "nora";
-    return insert(room, seq, who, REACT[who][seq % REACT[who].length], { scene: last.meta.scene, react: true });
+    return insert(room, seq, who, REACT[who][seq % REACT[who].length], { scene: last.meta.scene, react: true }, deps);
   }
 
   // new scene
@@ -254,7 +394,7 @@ async function advance(room = "main", deps = {}) {
       const ai = await callAI(buildPrompt(sc, "hacker", [], 0), env, deps.fetch);
       if (ai) { text = ai.text; used = mode; }
     }
-    return insert(room, seq, "hacker", text, { scene: idx, step: 0, start: true, title: sc.title, tactic: sc.tactic, mode: used });
+    return insert(room, seq, "hacker", text, { scene: idx, step: 0, start: true, title: sc.title, tactic: sc.tactic, mode: used, ai: used !== "script" }, deps);
   }
 
   const head = cur[0] ? cur[0].meta : { scene: 0 };
@@ -270,21 +410,21 @@ async function advance(room = "main", deps = {}) {
     if (last.meta && last.meta.outcome && last.meta.outcome !== "continue") return end(last.meta.outcome);
     if (spoken.length >= MAX_AI_TURNS) return end(sc.outcome);
     const ai = await callAI(buildPrompt(sc, next, cur.filter((l) => l.speaker !== "system"), spoken.length), env, deps.fetch);
-    if (ai) return insert(room, seq, next, ai.text, { ...base, outcome: ai.outcome });
+    if (ai) return insert(room, seq, next, ai.text, { ...base, outcome: ai.outcome, ai: true }, deps);
     // AI failed mid-scene: say this character's next scripted line, if any
     const fb = sc.lines.find((l, i) => l[0] === next && i >= spoken.length);
-    return fb ? insert(room, seq, next, fb[1], { ...base }) : end(sc.outcome);
+    return fb ? insert(room, seq, next, fb[1], { ...base }, deps) : end(sc.outcome);
   }
 
   // scripted
   if (last.speaker === "visitor") {
     const pool = REACT[next];
-    return insert(room, seq, next, pool[seq % pool.length], { ...base, react: true });
+    return insert(room, seq, next, pool[seq % pool.length], { ...base, react: true }, deps);
   }
   const step = spoken.filter((l) => !(l.meta && l.meta.react)).length;
   if (step >= sc.lines.length) return end(sc.outcome);
   const [who, text] = sc.lines[step];
-  return insert(room, seq, who, text, { ...base, step });
+  return insert(room, seq, who, text, { ...base, step }, deps);
 }
 
 async function state(room = "main", after = 0, deps = {}) {
@@ -309,4 +449,4 @@ async function say(room, to, text) {
   return false;
 }
 
-module.exports = { SCENES, advance, state, say, aiMode, buildPrompt, callAI, speakMs, _reset: () => { memLines = []; } };
+module.exports = { SCENES, advance, state, say, aiMode, buildPrompt, callAI, speakMs, audioWav, sample, wavMs, _reset: () => { memLines = []; memAudio = new Map(); memLease = new Map(); } };

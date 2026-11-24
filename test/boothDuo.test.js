@@ -46,7 +46,7 @@ test("a visitor line gets a reply from the addressed character, then the script 
 
 test("Gemini mode uses the model's line and ends the scene on its outcome", async () => {
   duo._reset();
-  const env = { GEMINI_API_KEY: "AIza-test" };
+  const env = { GEMINI_API_KEY: "AIza-test", DUO_TTS: "off" };
   const calls = [];
   const fetch = async (url, opt) => {
     calls.push({ url, opt });
@@ -71,4 +71,34 @@ test("AI failure falls back to the scripted line", async () => {
   await duo.advance("t5", { env: { GEMINI_API_KEY: "AIza-x" }, now: later, fetch });
   const lines = (await duo.state("t5", 0, { env: NOKEY, now: () => 0 })).lines;
   assert.equal(lines[0].text, duo.SCENES[0].lines[0][1]);
+});
+
+test("each character line gets a cached AI voice and the pause follows its length", async () => {
+  duo._reset();
+  const env = { GEMINI_API_KEY: "AIza-x" };
+  const pcm = Buffer.alloc(24000 * 2 * 3); // 3 s of silence at 24 kHz
+  let ttsCalls = 0;
+  const ttsFetch = async (url, opt) => {
+    ttsCalls++;
+    assert.match(url, /tts:generateContent/);
+    assert.doesNotMatch(JSON.parse(opt.body).contents[0].parts[0].text, /لهجة|:/); // only the line itself is spoken
+    return { ok: true, json: async () => ({ candidates: [{ content: { parts: [{ inlineData: { mimeType: "audio/L16;codec=pcm;rate=24000", data: pcm.toString("base64") } }] } }] }) };
+  };
+  const fetch = async () => ({ ok: false, status: 500, text: async () => "" }); // text AI down: script lines
+  await duo.advance("t6", { env, now: later, fetch, ttsFetch });
+  const [l1] = (await duo.state("t6", 0, { env: { DUO_TTS: "off" }, now: () => 0 })).lines;
+  assert.equal(l1.meta.ms, 3000);
+  assert.match(l1.meta.audio, /^[a-f0-9]{40}$/);
+  const wav = await duo.audioWav(l1.meta.audio);
+  assert.equal(wav.toString("ascii", 0, 4), "RIFF");
+  assert.equal(duo.wavMs(wav), 3000);
+  // same scripted text again: served from cache, no new TTS call
+  duo._reset();
+  const before = ttsCalls;
+  await duo.advance("t7", { env, now: later, fetch, ttsFetch });
+  assert.equal(ttsCalls, before + 1); // cache was cleared by _reset, so one call
+  const s2 = await duo.sample("nora", { env, ttsFetch });
+  const s3 = await duo.sample("nora", { env, ttsFetch });
+  assert.equal(s2.audio, s3.audio);
+  assert.equal(ttsCalls, before + 2);
 });
