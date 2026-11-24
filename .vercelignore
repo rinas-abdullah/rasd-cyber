@@ -1,0 +1,6 @@
+dist
+netlify-public
+.netlify
+node_modules
+*.pem
+*.p12

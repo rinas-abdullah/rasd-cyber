@@ -29,3 +29,9 @@ Thumbs.db
 *.p12
 *.cer
 *.csr
+
+.vercel
+vercel-public
+
+.vercel
+.env*
