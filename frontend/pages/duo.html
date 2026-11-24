@@ -85,7 +85,7 @@
 <div class="app">
   <div class="bar">
     <div><span class="tac" id="tac">الهندسة الاجتماعية</span><b id="title">رَصد سايبر · جناح 23</b></div>
-    <span class="pill" id="mode">…</span>
+    <span style="display:flex;gap:8px"><span class="pill" id="snd" role="button">🔇 الصوت</span><span class="pill" id="mode">…</span></span>
   </div>
   <div class="stage">
     <div class="av" id="av"></div>
@@ -112,7 +112,7 @@
     hacker: { em: "🦹‍♂️", ar: "المخترق", sub: "يحاول يخدع الاستقبال", sample: "هلا نورة، معك فيصل من الدعم الفني.", g: "m" },
     nora: { em: "👩‍💼", ar: "نورة", sub: "موظفة الاستقبال · مستشفى", sample: "هلا والله، وش أقدر أخدمك؟", g: "f" }
   };
-  var role = qs.get("role"); try { role = role || localStorage.getItem("duoRole"); } catch (e) {}
+  var role = qs.get("role");
   if (!CH[role]) role = null;
 
   // ---------- role + audio unlock ----------
@@ -127,12 +127,12 @@
   }
   document.querySelectorAll("#roles button").forEach(function (b) { b.addEventListener("click", function () { pick(b.dataset.role); }); });
   $("start").addEventListener("click", function () {
-    try { var u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } catch (e) {}
+    unlock();
     if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function () {});
     $("gate").style.display = "none"; started = true;
   });
   // long-press the avatar to switch role
-  var lp; $("av").addEventListener("touchstart", function () { lp = setTimeout(function () { try { localStorage.removeItem("duoRole"); } catch (e) {} location.href = "/duo" + (ROOM !== "main" ? "?room=" + ROOM : ""); }, 2500); }, { passive: true });
+  var lp; $("av").addEventListener("touchstart", function () { lp = setTimeout(function () { location.href = "/duo" + (ROOM !== "main" ? "?room=" + ROOM : ""); }, 2500); }, { passive: true });
   $("av").addEventListener("touchend", function () { clearTimeout(lp); });
 
   // ---------- voice ----------
@@ -163,20 +163,32 @@
   $("vsel").addEventListener("change", function () { try { localStorage.setItem("duoVoice-" + role, $("vsel").value); } catch (e) {} chooseVoice(); });
   $("vtest").addEventListener("click", function () { speechSynthesis.cancel(); queue = [CH[role].sample]; speaking = false; speakNext(); });
   if (window.speechSynthesis) { speechSynthesis.onvoiceschanged = function () { if (role) fillVoices(); }; }
-  var queue = [], speaking = false, started = false;
+  var queue = [], speaking = false, started = false, spokeOk = false;
+  function setSnd(ok, txt) { var el = $("snd"); el.textContent = txt; el.style.borderColor = ok ? "var(--green)" : "var(--red)"; el.style.color = ok ? "var(--green)" : "#ffb3b3"; }
+  // Speak something audible inside the tap so iOS/Chrome allow later speech from timers.
+  function unlock() {
+    if (!window.speechSynthesis) { setSnd(false, "🔇 المتصفح ما يدعم الصوت"); return; }
+    try { speechSynthesis.cancel(); } catch (e) {}
+    chooseVoice(); queue = [CH[role].g === "f" ? "تمام، نورة جاهزة." : "تمام، جاهز."]; speaking = false; speakNext();
+  }
+  $("snd").addEventListener("click", unlock);
+  // iOS sometimes leaves the synth paused; nudge it.
+  setInterval(function () { try { if (window.speechSynthesis && speechSynthesis.paused) speechSynthesis.resume(); } catch (e) {} }, 1000);
   function speakNext() {
     if (speaking || !queue.length) return;
     var text = queue.shift(); speaking = true; document.body.classList.add("talking");
     var done = function () { speaking = false; document.body.classList.remove("talking"); speakNext(); };
-    if (!window.speechSynthesis) { setTimeout(done, 1200 + text.length * 80); return; }
+    if (!window.speechSynthesis) { setTimeout(done, 1500 + text.length * 95); return; }
     if (!voice) chooseVoice();
     var u = new SpeechSynthesisUtterance(text);
     u.lang = voice ? voice.lang : "ar-SA"; if (voice) u.voice = voice;
     // a matching voice speaks naturally; otherwise bend the pitch toward the character
     var ok = voice && gender(voice) === CH[role].g;
     u.pitch = ok ? 1 : CH[role].g === "f" ? 1.35 : 0.7; u.rate = 1;
-    u.onend = done; u.onerror = done;
-    var guard = setTimeout(done, 3000 + text.length * 150); u.onend = function () { clearTimeout(guard); done(); };
+    var guard = setTimeout(done, 3000 + text.length * 150);
+    u.onstart = function () { spokeOk = true; setSnd(true, "🔊 " + (voice ? voice.name.replace(/^Microsoft\s+/, "").split(/[\s(-]/)[0] : "صوت")); };
+    u.onend = function () { clearTimeout(guard); done(); };
+    u.onerror = function (e) { clearTimeout(guard); setSnd(false, "🔇 اضغطي هنا لتشغيل الصوت"); done(); };
     speechSynthesis.speak(u);
   }
 
@@ -207,7 +219,7 @@
       if (fresh && started) { queue.push(l.text); speakNext(); }
     } else {
       $("sub").innerHTML = '<span class="them">' + NAMES[l.speaker] + "</span>" + esc(l.text);
-      if (fresh) { document.body.classList.add("listening"); clearTimeout(listenT); listenT = setTimeout(function () { document.body.classList.remove("listening"); }, 1200 + l.text.length * 80); }
+      if (fresh) { document.body.classList.add("listening"); clearTimeout(listenT); listenT = setTimeout(function () { document.body.classList.remove("listening"); }, 1500 + l.text.length * 95); }
     }
   }
   function poll() {
